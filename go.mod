@@ -1,4 +1,4 @@
-module americano
+module github.com/jdkingsbury/americano
 
 go 1.23.0
 
