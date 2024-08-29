@@ -7,36 +7,36 @@ import (
 	"github.com/charmbracelet/lipgloss/tree"
 )
 
-type styles struct {
-	base,
-	block,
-	enumerator,
-	toggle,
-	db,
-	table,
-	column lipgloss.Style
-}
+// type styles struct {
+// 	base,
+// 	block,
+// 	enumerator,
+// 	toggle,
+// 	db,
+// 	table,
+// 	column lipgloss.Style
+// }
 
-func defaultStyles() styles {
-	var s styles
-	s.base = lipgloss.NewStyle().
-		Background(lipgloss.Color("57")).
-		Foreground(lipgloss.Color("225"))
-	s.block = s.base.
-		Padding(1, 3).
-		Margin(1, 3).
-		Width(40)
-	s.enumerator = s.base.
-		Foreground(lipgloss.Color("212")).
-		PaddingRight(1)
-	s.toggle = s.base.
-		Foreground(lipgloss.Color("207")).
-		PaddingRight(1)
-	s.db = s.base
-	s.table = s.base
-	s.column = s.base
-	return s
-}
+// func defaultStyles() styles {
+// 	var s styles
+// 	s.base = lipgloss.NewStyle().
+// 		Background(lipgloss.Color("57")).
+// 		Foreground(lipgloss.Color("225"))
+// 	s.block = s.base.
+// 		Padding(1, 3).
+// 		Margin(1, 3).
+// 		Width(40)
+// 	s.enumerator = s.base.
+// 		Foreground(lipgloss.Color("212")).
+// 		PaddingRight(1)
+// 	s.toggle = s.base.
+// 		Foreground(lipgloss.Color("207")).
+// 		PaddingRight(1)
+// 	s.db = s.base
+// 	s.table = s.base
+// 	s.column = s.base
+// 	return s
+// }
 
 type db struct {
 	name   string

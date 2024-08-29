@@ -9,10 +9,26 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type styles struct {
+	topLeftPane    lipgloss.Style
+	bottomLeftPane lipgloss.Style
+	bottomPane     lipgloss.Style
+	mainPane       lipgloss.Style
+}
+
+func defaultStyles() styles {
+	s := styles{
+		topLeftPane:    lipgloss.NewStyle().Width(30).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
+		bottomLeftPane: lipgloss.NewStyle().Width(30).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
+		bottomPane:     lipgloss.NewStyle().Width(80).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
+		mainPane:       lipgloss.NewStyle().Width(50).Height(20).Border(lipgloss.RoundedBorder()).Padding(1),
+	}
+	return s
+}
+
 type model struct {
-	width  int
-	height int
-	ready  bool
+	styles     styles
+	showBottom bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -25,39 +41,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
+		case "enter":
+			m.showBottom = true // Used for testing but will be used for displaying query results
 		}
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.ready = true
-
 	}
 
 	return m, nil
 }
 
 func (m model) View() string {
-	style := lipgloss.NewStyle().Width(m.width).Height(m.height).Background(lipgloss.Color("63"))
-	return style.Render("This is a fullscreen application")
-}
+	s := m.styles
 
-// func (m model) View() string {
-// 	if !m.ready {
-// 		return "loading..."
-// 	}
-//
-// 	windowStyle := lipgloss.NewStyle().
-// 		Width(m.width/2).
-// 		Height(m.height/2).
-// 		Padding(1, 2).
-// 		Border(lipgloss.RoundedBorder()).
-// 		BorderForeground(lipgloss.Color("63")).
-// 		Align(lipgloss.Center)
-//
-// 	content := "Simple window"
-//
-// 	return windowStyle.Render(content)
-// }
+	// Render the panes
+	topLeftPane := s.topLeftPane.Render("Top Left Pane")
+	bottomLeftPane := s.bottomLeftPane.Render("Bottom Left Pane")
+	mainPane := s.mainPane.Render("Main Pane")
+
+	var bottomPane string
+	if m.showBottom {
+		bottomPane = s.bottomPane.Render("Bottom Pane")
+	} else {
+		bottomPane = ""
+	}
+
+	// Arrange Panes
+	leftSide := lipgloss.JoinVertical(lipgloss.Top, topLeftPane, bottomLeftPane)
+	rightSide := lipgloss.JoinVertical(lipgloss.Top, mainPane)
+
+	layout := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
+
+	if m.showBottom {
+		layout = lipgloss.JoinVertical(lipgloss.Top, layout, bottomPane)
+	}
+
+	return layout
+}
 
 func main() {
 	// save terminal state
@@ -72,7 +90,9 @@ func main() {
 		restoreState.Run()
 	}()
 
-	p := tea.NewProgram(model{})
+	styles := defaultStyles()
+
+	p := tea.NewProgram(model{styles: styles}, tea.WithAltScreen())
 
 	if err := p.Start(); err != nil {
 		fmt.Println("Error:", err)
