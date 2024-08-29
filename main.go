@@ -16,12 +16,16 @@ type styles struct {
 	mainPane       lipgloss.Style
 }
 
-func defaultStyles() styles {
+func defaultStyles(width, height int) styles {
+	topLeftHeight := height / 3
+	bottomLeftHeight := height / 4
+	mainPaneWidth := width - 35
+
 	s := styles{
-		topLeftPane:    lipgloss.NewStyle().Width(30).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
-		bottomLeftPane: lipgloss.NewStyle().Width(30).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
-		bottomPane:     lipgloss.NewStyle().Width(80).Height(10).Border(lipgloss.RoundedBorder()).Padding(1),
-		mainPane:       lipgloss.NewStyle().Width(50).Height(20).Border(lipgloss.RoundedBorder()).Padding(1),
+		topLeftPane:    lipgloss.NewStyle().Width(30).Height(topLeftHeight).Border(lipgloss.RoundedBorder()).Padding(1),
+		bottomLeftPane: lipgloss.NewStyle().Width(30).Height(bottomLeftHeight).Border(lipgloss.RoundedBorder()).Padding(1),
+		bottomPane:     lipgloss.NewStyle().Width(width - 3).Height(height / 4).Border(lipgloss.RoundedBorder()).Padding(1),
+		mainPane:       lipgloss.NewStyle().Width(mainPaneWidth).Height(topLeftHeight + bottomLeftHeight + 2).Border(lipgloss.RoundedBorder()).Padding(1),
 	}
 	return s
 }
@@ -29,6 +33,8 @@ func defaultStyles() styles {
 type model struct {
 	styles     styles
 	showBottom bool
+	width      int
+	height     int
 }
 
 func (m model) Init() tea.Cmd {
@@ -37,6 +43,10 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
+		m.styles = defaultStyles(m.width, m.height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
@@ -90,9 +100,9 @@ func main() {
 		restoreState.Run()
 	}()
 
-	styles := defaultStyles()
+	// styles := defaultStyles()
 
-	p := tea.NewProgram(model{styles: styles}, tea.WithAltScreen())
+	p := tea.NewProgram(model{}, tea.WithAltScreen())
 
 	if err := p.Start(); err != nil {
 		fmt.Println("Error:", err)
