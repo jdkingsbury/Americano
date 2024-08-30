@@ -2,19 +2,24 @@ package panes
 
 import "github.com/charmbracelet/lipgloss"
 
+// Pane Title Text and Background Color
+var titleStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("#e0def4")).
+	Background(lipgloss.Color("#26233a")).
+	Padding(0, 1)
+
 // Render functions for each pane
 func TopLeftPane(style lipgloss.Style) string {
-	return style.Render("Top Left Pane")
-}
-
-func BottomLeftPane(style lipgloss.Style) string {
-	return style.Render("Bottom Left Pane")
+	title := titleStyle.Render("Top Left Pane")
+	return style.Render(title)
 }
 
 func MainPane(style lipgloss.Style) string {
-	return style.Render("Main Pane")
+	title := titleStyle.Render("Main Pane")
+	return style.Render(title)
 }
 
 func BottomPane(style lipgloss.Style) string {
-	return style.Render("Bottom Pane")
+	title := titleStyle.Render("Bottom Pane")
+	return style.Render(title)
 }
