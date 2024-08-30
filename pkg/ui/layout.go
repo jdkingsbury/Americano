@@ -32,48 +32,26 @@ func (m PaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
-		case "enter":
-			m.showBottom = true // Used for testing but will be used for displaying query results
 		}
 	}
 
 	return m, nil
 }
 
-var titleStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("206")) // Change color as needed
-
 func (m PaneModel) View() string {
 	s := m.styles
 
-	// Define the titles for each pane
-	topLeftTitle := titleStyle.Render("Top Left Pane")
-	bottomLeftTitle := titleStyle.Render("Bottom Left Pane")
-	mainPaneTitle := titleStyle.Render("Main Pane")
-	bottomPaneTitle := titleStyle.Render("Bottom Pane")
-
 	// Render the panes
 	topLeftPane := panes.TopLeftPane(s.TopLeftPane)
-	bottomLeftPane := panes.BottomLeftPane(s.BottomLeftPane)
 	mainPane := panes.MainPane(s.MainPane)
-
-	var bottomPane string
-	if m.showBottom {
-		bottomPane = panes.BottomPane(s.BottomPane)
-	} else {
-		bottomPane = ""
-	}
+	bottomPane := panes.BottomPane(s.BottomPane)
 
 	// Arrange Panes
-	leftSide := lipgloss.JoinVertical(lipgloss.Top, topLeftTitle, topLeftPane, bottomLeftTitle, bottomLeftPane)
-	rightSide := lipgloss.JoinVertical(lipgloss.Top, mainPaneTitle, mainPane)
+	leftSide := lipgloss.JoinVertical(lipgloss.Top, topLeftPane)
+	rightSide := lipgloss.JoinVertical(lipgloss.Top, mainPane)
 
 	layout := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
-
-	if m.showBottom {
-		layout = lipgloss.JoinVertical(lipgloss.Top, layout, bottomPaneTitle, bottomPane)
-	}
+	layout = lipgloss.JoinVertical(lipgloss.Top, layout, bottomPane)
 
 	return layout
 }
