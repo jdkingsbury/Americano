@@ -18,7 +18,7 @@ type PaneStyles struct {
 	MainPane       lipgloss.Style
 }
 
-func CreateStyles(width, height int) PaneStyles {
+func CreatePaneStyles(width, height int) PaneStyles {
 	topLeftHeight := height - 17
 	mainPaneWidth := width - 45
 

@@ -27,7 +27,7 @@ func (m PaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.styles = components.CreateStyles(m.width, m.height)
+		m.styles = components.CreatePaneStyles(m.width, m.height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
