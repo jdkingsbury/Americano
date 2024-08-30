@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
-  "github.com/jdkingsbury/americano/pkg/ui"
+  "github.com/jdkingsbury/americano/internal/components/ui/panes"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 		restoreState.Run()
 	}()
 
-  p := tea.NewProgram(ui.NewModel(), tea.WithAltScreen())
+  p := tea.NewProgram(panes.NewModel(), tea.WithAltScreen())
 
 	if err := p.Start(); err != nil {
 		fmt.Println("Error:", err)

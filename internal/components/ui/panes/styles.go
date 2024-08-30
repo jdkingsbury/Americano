@@ -1,4 +1,4 @@
-package components
+package panes
 
 import "github.com/charmbracelet/lipgloss"
 
