@@ -1,21 +1,23 @@
 package panes
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
 
 // Colors are from the Rose-Pine Colorscheme
 var (
-	rose = lipgloss.Color("#ebbcba")
-	iris = lipgloss.Color("#c4a7e7")
-	pine = lipgloss.Color("#31748f")
-	foam = lipgloss.Color("#9ccfd8")
-  subtle = lipgloss.Color("#908caa")
-
+	rose   = lipgloss.Color("#ebbcba")
+	iris   = lipgloss.Color("#c4a7e7")
+	pine   = lipgloss.Color("#31748f")
+	foam   = lipgloss.Color("#9ccfd8")
+	subtle = lipgloss.Color("#908caa")
 )
 
 type PaneStyles struct {
-	TopLeftPane    lipgloss.Style
-	BottomPane     lipgloss.Style
-	MainPane       lipgloss.Style
+	TopLeftPane lipgloss.Style
+	BottomPane  lipgloss.Style
+	MainPane    lipgloss.Style
+	// footer      lipgloss.Style
 }
 
 func CreatePaneStyles(width, height int) PaneStyles {
@@ -23,9 +25,10 @@ func CreatePaneStyles(width, height int) PaneStyles {
 	mainPaneWidth := width - 45
 
 	s := PaneStyles{
-		TopLeftPane:    lipgloss.NewStyle().Width(45).Height(topLeftHeight).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
-		BottomPane:     lipgloss.NewStyle().Width(width - 3).Height(height / 3).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
-		MainPane:       lipgloss.NewStyle().Width(mainPaneWidth - 5).Height(height - 17).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
+		TopLeftPane: lipgloss.NewStyle().Width(45).Height(topLeftHeight).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
+		BottomPane:  lipgloss.NewStyle().Width(width - 3).Height(height / 3).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
+		MainPane:    lipgloss.NewStyle().Width(mainPaneWidth - 5).Height(height - 17).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
+		// footer:      lipgloss.NewStyle().Background(lipgloss.Color("#26233a")).Foreground(lipgloss.Color("#e0def4")).Padding(0, 1).Align(lipgloss.Center).Width(width - 3),
 	}
 	return s
 }
