@@ -1,84 +1,91 @@
 package panes
 
 import (
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-type errMsg error
+type pane int
 
-type PaneModel struct {
-	styles   PaneStyles
-	width    int
-	height   int
-	textarea textarea.Model
-	err      error
+const (
+	SideBarPane pane = iota
+	EditorPane
+)
+
+type LayoutModel struct {
+	currentPane pane
+	panes       []tea.Model
+	width       int
+	height      int
 }
 
-func (m *PaneModel) Init() tea.Cmd {
+func (m *LayoutModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *PaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
+func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
 		m.width = msg.Width
-		m.styles = CreatePaneStyles(m.width, m.height)
-		m.resizeTextArea()
+		m.height = msg.Height
+		m.updatePaneSizes()
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
-			if m.textarea.Focused() {
-				m.textarea.Blur()
-			}
-		case tea.KeyCtrlC:
-			return m, tea.Quit
-		default:
-			if !m.textarea.Focused() {
-				cmd = m.textarea.Focus()
-				cmds = append(cmds, cmd)
-			}
+		switch msg.String() {
+		case "tab":
+			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
+		case "shift+tab":
+			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
 		}
-	case errMsg:
-		m.err = msg
-		return m, nil
 	}
 
-	m.textarea, cmd = m.textarea.Update(msg)
-	cmds = append(cmds, cmd)
+	if int(m.currentPane) >= 0 && int(m.currentPane) < len(m.panes) {
+		model := m.panes[m.currentPane]
+		m.panes[m.currentPane], cmd = model.Update(msg)
+	}
 
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
 
-// Pane Title Text and Background Color
-var titleStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#e0def4")).
-	Background(lipgloss.Color("#26233a")).
-	Align(lipgloss.Center).
-	Padding(0, 1)
+func (m *LayoutModel) View() string {
+	sideBarView := m.panes[SideBarPane].View()
+	editorView := m.panes[EditorPane].View()
 
-func (m PaneModel) View() string {
-	s := m.styles
+	leftSide := lipgloss.JoinHorizontal(lipgloss.Left, sideBarView)
+	rightSide := lipgloss.JoinHorizontal(lipgloss.Left, editorView)
 
-	titleLeftPane := titleStyle.Render("Top Left Pane")
-	titleBottomPane := titleStyle.Render("Bottom Pane")
-
-	// Render the panes
-	topLeftPane := s.TopLeftPane.Render(titleLeftPane)
-	mainPane := s.MainPane.Render(m.textarea.View())
-	bottomPane := s.BottomPane.Render(titleBottomPane)
-
-	// Arrange Panes
-	leftSide := lipgloss.JoinVertical(lipgloss.Top, topLeftPane)
-	rightSide := lipgloss.JoinVertical(lipgloss.Top, mainPane)
-
-	layout := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
-	layout = lipgloss.JoinVertical(lipgloss.Top, layout, bottomPane)
+	layout := lipgloss.JoinHorizontal(lipgloss.Left, leftSide, rightSide)
 
 	return layout
+}
+
+func (m *LayoutModel) updatePaneSizes() {
+	for _, pane := range m.panes {
+		switch pane := pane.(type) {
+		case *SideBarPaneModel:
+			pane.width = m.width
+			pane.height = m.height
+      pane.updateStyles()
+		case *EditorPaneModel:
+			pane.width = m.width
+			pane.height = m.height
+			pane.resizeTextArea()
+		}
+	}
+}
+
+func NewLayoutModel() *LayoutModel {
+  sideBarPane := NewSideBarPane(0, 0)
+  editorPane := NewEditorPane(0, 0)
+
+	return &LayoutModel{
+		currentPane: EditorPane,
+		panes: []tea.Model{
+			sideBarPane, // Index 0
+			editorPane,  // Index 1
+		},
+		width:  0,
+		height: 0,
+	}
 }
