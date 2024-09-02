@@ -12,6 +12,7 @@ var (
 	dbAdd      = "󰆺"
 	dbConn     = "󱘩"
 	dbNotConn  = "󰴀"
+	keyboard   = "󰥻"
 )
 
 // Colors are from the Rose-Pine Colorscheme
