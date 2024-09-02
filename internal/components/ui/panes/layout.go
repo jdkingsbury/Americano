@@ -5,51 +5,96 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type PaneModel struct {
-	styles     PaneStyles
-	showBottom bool
-	width      int
-	height     int
+type pane int
+
+const (
+	SideBarPane pane = iota
+	EditorPane
+  ResultPane
+)
+
+type LayoutModel struct {
+	currentPane pane
+	panes       []tea.Model
+	width       int
+	height      int
 }
 
-func NewModel() PaneModel {
-	return PaneModel{}
-}
-
-func (m PaneModel) Init() tea.Cmd {
+func (m *LayoutModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m PaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
 		m.width = msg.Width
-		m.styles = CreatePaneStyles(m.width, m.height)
+		m.height = msg.Height
+		m.updatePaneSizes()
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q":
-			return m, tea.Quit
+		case "tab":
+			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
+		case "shift+tab":
+			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
 		}
 	}
 
-	return m, nil
+	if int(m.currentPane) >= 0 && int(m.currentPane) < len(m.panes) {
+		model := m.panes[m.currentPane]
+		m.panes[m.currentPane], cmd = model.Update(msg)
+	}
+
+	return m, cmd
 }
 
-func (m PaneModel) View() string {
-	s := m.styles
+func (m *LayoutModel) View() string {
+	sideBarView := m.panes[SideBarPane].View()
+	editorView := m.panes[EditorPane].View()
+  resultView := m.panes[ResultPane].View()
 
-	// Render the panes
-	topLeftPane := TopLeftPane(s.TopLeftPane)
-	mainPane := MainPane(s.MainPane)
-	bottomPane := BottomPane(s.BottomPane)
+	leftSide := lipgloss.JoinHorizontal(lipgloss.Left, sideBarView)
+	rightSide := lipgloss.JoinHorizontal(lipgloss.Left, editorView)
 
-	// Arrange Panes
-	leftSide := lipgloss.JoinVertical(lipgloss.Top, topLeftPane)
-	rightSide := lipgloss.JoinVertical(lipgloss.Top, mainPane)
-
-	layout := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
-	layout = lipgloss.JoinVertical(lipgloss.Top, layout, bottomPane)
+	layout := lipgloss.JoinHorizontal(lipgloss.Left, leftSide, rightSide)
+  layout = lipgloss.JoinVertical(lipgloss.Top, layout, resultView)
 
 	return layout
+}
+
+func (m *LayoutModel) updatePaneSizes() {
+	for _, pane := range m.panes {
+		switch pane := pane.(type) {
+		case *SideBarPaneModel:
+			pane.width = m.width
+			pane.height = m.height
+      pane.updateStyles()
+		case *EditorPaneModel:
+			pane.width = m.width
+			pane.height = m.height
+			pane.resizeTextArea()
+    case *ResultPaneModel:
+      pane.width = m.width
+      pane.height = m.height
+      pane.updateStyles()
+		}
+	}
+}
+
+func NewLayoutModel() *LayoutModel {
+  sideBarPane := NewSideBarPane(0, 0)
+  editorPane := NewEditorPane(0, 0)
+  resultPane := NewResultPane(0, 0)
+
+	return &LayoutModel{
+		currentPane: EditorPane,
+		panes: []tea.Model{
+			sideBarPane, // Index 0
+			editorPane,  // Index 1
+      resultPane,  // Index 2
+		},
+		width:  0,
+		height: 0,
+	}
 }

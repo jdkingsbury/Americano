@@ -1,31 +1,34 @@
 package panes
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
+
+// Font Icons
+var (
+	caretRight = ""
+	caretdown  = ""
+	dbIcon     = ""
+	dbAdd      = "󰆺"
+	dbConn     = "󱘩"
+	dbNotConn  = "󰴀"
+)
 
 // Colors are from the Rose-Pine Colorscheme
 var (
-	rose = lipgloss.Color("#ebbcba")
-	iris = lipgloss.Color("#c4a7e7")
-	pine = lipgloss.Color("#31748f")
-	foam = lipgloss.Color("#9ccfd8")
-  subtle = lipgloss.Color("#908caa")
-
+	base          = lipgloss.Color("#191724")
+	surface       = lipgloss.Color("#1f1d2e")
+	overlay       = lipgloss.Color("#26233a")
+	muted         = lipgloss.Color("#6e6a86")
+	subtle        = lipgloss.Color("#908caa")
+	text          = lipgloss.Color("#e0def4")
+	love          = lipgloss.Color("#eb6f92")
+	gold          = lipgloss.Color("#f6c177")
+	rose          = lipgloss.Color("#ebbcba")
+	pine          = lipgloss.Color("#31748f")
+	foam          = lipgloss.Color("#9ccfd8")
+	iris          = lipgloss.Color("#c4a7e7")
+	highlightLow  = lipgloss.Color("#2a283e")
+	highlightMed  = lipgloss.Color("#dfdad9")
+	highlightHigh = lipgloss.Color("#cecacd")
 )
-
-type PaneStyles struct {
-	TopLeftPane    lipgloss.Style
-	BottomPane     lipgloss.Style
-	MainPane       lipgloss.Style
-}
-
-func CreatePaneStyles(width, height int) PaneStyles {
-	topLeftHeight := height - 17
-	mainPaneWidth := width - 45
-
-	s := PaneStyles{
-		TopLeftPane:    lipgloss.NewStyle().Width(45).Height(topLeftHeight).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
-		BottomPane:     lipgloss.NewStyle().Width(width - 3).Height(height / 3).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
-		MainPane:       lipgloss.NewStyle().Width(mainPaneWidth - 5).Height(height - 17).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(iris)),
-	}
-	return s
-}
