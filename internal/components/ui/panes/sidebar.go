@@ -8,6 +8,8 @@ import (
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
+/* Handles the side bar pane */
+
 type SideBarItem struct {
 	Name      string
 	IsButton  bool

@@ -10,6 +10,7 @@ type pane int
 const (
 	SideBarPane pane = iota
 	EditorPane
+  ResultPane
 )
 
 type LayoutModel struct {
@@ -51,11 +52,13 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *LayoutModel) View() string {
 	sideBarView := m.panes[SideBarPane].View()
 	editorView := m.panes[EditorPane].View()
+  resultView := m.panes[ResultPane].View()
 
 	leftSide := lipgloss.JoinHorizontal(lipgloss.Left, sideBarView)
 	rightSide := lipgloss.JoinHorizontal(lipgloss.Left, editorView)
 
 	layout := lipgloss.JoinHorizontal(lipgloss.Left, leftSide, rightSide)
+  layout = lipgloss.JoinVertical(lipgloss.Top, layout, resultView)
 
 	return layout
 }
@@ -71,6 +74,10 @@ func (m *LayoutModel) updatePaneSizes() {
 			pane.width = m.width
 			pane.height = m.height
 			pane.resizeTextArea()
+    case *ResultPaneModel:
+      pane.width = m.width
+      pane.height = m.height
+      pane.updateStyles()
 		}
 	}
 }
@@ -78,12 +85,14 @@ func (m *LayoutModel) updatePaneSizes() {
 func NewLayoutModel() *LayoutModel {
   sideBarPane := NewSideBarPane(0, 0)
   editorPane := NewEditorPane(0, 0)
+  resultPane := NewResultPane(0, 0)
 
 	return &LayoutModel{
 		currentPane: EditorPane,
 		panes: []tea.Model{
 			sideBarPane, // Index 0
 			editorPane,  // Index 1
+      resultPane,  // Index 2
 		},
 		width:  0,
 		height: 0,

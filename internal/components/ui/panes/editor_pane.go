@@ -7,6 +7,8 @@ import (
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
+/* Handles The SQL Editor Pane*/
+
 type EditorPaneModel struct {
 	styles       lipgloss.Style
 	activeStyles lipgloss.Style
@@ -18,8 +20,22 @@ type EditorPaneModel struct {
 	isActive     bool
 }
 
+func (m *EditorPaneModel) updateStyles() {
+	m.styles = lipgloss.NewStyle().
+		Width(m.width - 40).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(iris))
+
+	m.activeStyles = lipgloss.NewStyle().
+		Width(m.width - 40).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(love))
+}
+
 func (m *EditorPaneModel) Init() tea.Cmd {
-	return nil
+	return m.textarea.Focus()
 }
 
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -69,35 +85,24 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func NewEditorPane(width, height int) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
-	ti.Focus()
 	ti.CharLimit = 1000
 	ti.ShowLineNumbers = false
 
-	editorPaneStyle := lipgloss.NewStyle().
-		Width(width - 50).
-		Height(height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(iris))
-
-	activePaneStyle := lipgloss.NewStyle().
-		Width(width - 50).
-		Height(height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(love))
-
-	return &EditorPaneModel{
-		styles:       editorPaneStyle,
-		activeStyles: activePaneStyle,
-		width:        width,
-		height:       height,
-		textarea:     ti,
-		err:          nil,
-		focused:      true,
+	pane := &EditorPaneModel{
+		width:    width,
+		height:   height,
+		textarea: ti,
+		err:      nil,
+		focused:  true,
 	}
+
+	pane.updateStyles()
+
+	return pane
 }
 
 func (m *EditorPaneModel) resizeTextArea() {
-	m.textarea.SetWidth(m.width - 50)
+	m.textarea.SetWidth(m.width - 40)
 	m.textarea.SetHeight(m.height - 17)
 }
 
