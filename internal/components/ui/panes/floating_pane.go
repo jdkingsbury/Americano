@@ -5,6 +5,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// NOTE: If Planning to use will most likely need to use alternate view code example from bubble tea
+
 type FloatingTextPaneModel struct {
 	styles    lipgloss.Style
 	width     int
