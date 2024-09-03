@@ -36,9 +36,24 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
+			// Deactivate current pane
+			m.setActivePane(false)
+
+			// Switch to the next pane
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
+
+			// Activate the new current pane
+			m.setActivePane(true)
+
 		case "shift+tab":
+			// Deactivate current pane
+			m.setActivePane(false)
+
+			// Switch to the previous pane
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
+
+			// Activate the new current pane
+			m.setActivePane(true)
 		case "Q":
 			return m, tea.Quit
 		}
@@ -50,6 +65,18 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, cmd
+}
+
+// Helper function to set the active status of the current pane
+func (m *LayoutModel) setActivePane(isActive bool) {
+	switch pane := m.panes[m.currentPane].(type) {
+	case *SideBarPaneModel:
+		pane.isActive = isActive
+	case *EditorPaneModel:
+		pane.isActive = isActive
+	case *ResultPaneModel:
+		pane.isActive = isActive
+	}
 }
 
 func (m *LayoutModel) View() string {
