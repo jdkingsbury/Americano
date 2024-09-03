@@ -62,6 +62,13 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
+type SideBarView int
+
+const (
+	ConnectionsView SideBarView = iota
+	DBTreeView
+)
+
 type DatabaseConnection struct {
 	Name string
 	URL  string
@@ -79,6 +86,7 @@ type SideBarPaneModel struct {
 	focusedIndex       int
 	err                error
 	connections        []DatabaseConnection
+	currentView        SideBarView
 }
 
 func (m *SideBarPaneModel) addConnection(name, url string) {
@@ -170,8 +178,16 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+
+		case "v":
+			if m.currentView == ConnectionsView {
+				m.currentView = DBTreeView
+			} else {
+				m.currentView = ConnectionsView
+			}
+
 		case "enter":
-			if m.isAddingConnection {
+			if m.isAddingConnection && m.currentView == ConnectionsView {
 				name := m.inputs[0].Value()
 				url := m.inputs[1].Value()
 				m.addConnection(name, url)
@@ -179,19 +195,22 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputs[1].SetValue("")
 				m.focusedIndex = 0
 				m.isAddingConnection = false
-			} else {
+			} else if m.currentView == ConnectionsView {
 				selectedItem := m.list.SelectedItem().(SideBarItem)
 				if selectedItem.IsButton {
 					m.isAddingConnection = true
 				}
 			}
 
-		case "tab":
-			if m.isAddingConnection && m.focusedIndex > 0 {
-				m.focusedIndex--
-			} else if m.isAddingConnection && m.focusedIndex < len(m.inputs)-1 {
-				m.focusedIndex++
+		case "up", "down":
+			if m.isAddingConnection && m.currentView == ConnectionsView {
+				if m.isAddingConnection && m.focusedIndex > 0 {
+					m.focusedIndex--
+				} else if m.isAddingConnection && m.focusedIndex < len(m.inputs)-1 {
+					m.focusedIndex++
+				}
 			}
+
 		}
 
 	case msgtypes.ErrMsg:
@@ -218,13 +237,19 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *SideBarPaneModel) View() string {
 	var content string
 
-	if m.isAddingConnection {
-		for _, input := range m.inputs {
-			content += input.View() + "\n"
+	switch m.currentView {
+	case ConnectionsView:
+		if m.isAddingConnection {
+			for _, input := range m.inputs {
+				content += input.View() + "\n"
+			}
+		} else {
+			content += titleStyle.Render(m.list.Title) + "\n"
+			content += m.list.View()
 		}
-	} else {
-		content += titleStyle.Render(m.list.Title) + "\n"
-		content += m.list.View()
+
+	case DBTreeView:
+		content += "Database Tree"
 	}
 
 	var paneStyle lipgloss.Style
