@@ -89,38 +89,6 @@ type SideBarPaneModel struct {
 	currentView        SideBarView
 }
 
-func (m *SideBarPaneModel) addConnection(name, url string) {
-	connection := DatabaseConnection{Name: name, URL: url}
-	m.connections = append(m.connections, connection)
-
-	// Append the new connection to the list
-	newItem := SideBarItem{Name: " 󰇯 " + name}
-	m.list.InsertItem(len(m.list.Items()), newItem)
-
-	// Set the new item as selected
-	m.list.Select(len(m.list.Items()) - 1)
-
-	// Reset after adding the connection
-	m.isAddingConnection = false
-	m.inputs[0].SetValue("")
-	m.inputs[1].SetValue("")
-	m.focusedIndex = 0
-}
-
-func (m *SideBarPaneModel) updateStyles() {
-	m.styles = lipgloss.NewStyle().
-		Width(m.width / 4).
-		Height(m.height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(iris))
-
-	m.activeStyles = lipgloss.NewStyle().
-		Width(m.width / 4).
-		Height(m.height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(love))
-}
-
 func NewSideBarPane(width, height int) *SideBarPaneModel {
 	inputs := make([]textinput.Model, 2)
 
@@ -161,6 +129,38 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 	pane.updateStyles() // Initialize styles
 
 	return pane
+}
+
+func (m *SideBarPaneModel) addConnection(name, url string) {
+	connection := DatabaseConnection{Name: name, URL: url}
+	m.connections = append(m.connections, connection)
+
+	// Append the new connection to the list
+	newItem := SideBarItem{Name: " 󰇯 " + name}
+	m.list.InsertItem(len(m.list.Items()), newItem)
+
+	// Set the new item as selected
+	m.list.Select(len(m.list.Items()) - 1)
+
+	// Reset after adding the connection
+	m.isAddingConnection = false
+	m.inputs[0].SetValue("")
+	m.inputs[1].SetValue("")
+	m.focusedIndex = 0
+}
+
+func (m *SideBarPaneModel) updateStyles() {
+	m.styles = lipgloss.NewStyle().
+		Width(m.width / 4).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(iris))
+
+	m.activeStyles = lipgloss.NewStyle().
+		Width(m.width / 4).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(rose))
 }
 
 func (m *SideBarPaneModel) Init() tea.Cmd {

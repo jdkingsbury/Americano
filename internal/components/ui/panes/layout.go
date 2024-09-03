@@ -123,7 +123,7 @@ func NewLayoutModel() *LayoutModel {
 	resultPane := NewResultPane(0, 0)
 	footerPane := NewFooterPane(0)
 
-	return &LayoutModel{
+	layout := &LayoutModel{
 		currentPane: EditorPane,
 		panes: []tea.Model{
 			sideBarPane, // Index 0
@@ -134,4 +134,9 @@ func NewLayoutModel() *LayoutModel {
 		width:  0,
 		height: 0,
 	}
+
+	// Set the initial active pane
+	layout.setActivePane(true)
+
+	return layout
 }

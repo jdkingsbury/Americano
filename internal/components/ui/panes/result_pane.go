@@ -14,6 +14,18 @@ type ResultPaneModel struct {
 	isActive     bool
 }
 
+func NewResultPane(width, height int) *ResultPaneModel {
+	pane := &ResultPaneModel{
+		width:  width,
+		height: height,
+		err:    nil,
+	}
+
+	pane.updateStyles()
+
+	return pane
+}
+
 func (m *ResultPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 3).
@@ -25,19 +37,7 @@ func (m *ResultPaneModel) updateStyles() {
 		Width(m.width - 3).
 		Height(m.height / 3).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(love))
-}
-
-func NewResultPane(width, height int) *ResultPaneModel {
-	pane := &ResultPaneModel{
-		width:  width,
-		height: height,
-		err:    nil,
-	}
-
-	pane.updateStyles()
-
-	return pane
+		BorderForeground(lipgloss.Color(rose))
 }
 
 func (m *ResultPaneModel) Init() tea.Cmd {

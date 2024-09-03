@@ -20,6 +20,25 @@ type EditorPaneModel struct {
 	isActive     bool
 }
 
+func NewEditorPane(width, height int) *EditorPaneModel {
+	ti := textarea.New()
+	ti.Placeholder = "Enter SQL Code Here..."
+	ti.CharLimit = 1000
+	ti.ShowLineNumbers = false
+
+	pane := &EditorPaneModel{
+		width:    width,
+		height:   height,
+		textarea: ti,
+		err:      nil,
+		focused:  true,
+	}
+
+	pane.updateStyles()
+
+	return pane
+}
+
 func (m *EditorPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 40).
@@ -31,7 +50,7 @@ func (m *EditorPaneModel) updateStyles() {
 		Width(m.width - 40).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(love))
+		BorderForeground(lipgloss.Color(rose))
 }
 
 func (m *EditorPaneModel) Init() tea.Cmd {
@@ -80,25 +99,6 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
-}
-
-func NewEditorPane(width, height int) *EditorPaneModel {
-	ti := textarea.New()
-	ti.Placeholder = "Enter SQL Code Here..."
-	ti.CharLimit = 1000
-	ti.ShowLineNumbers = false
-
-	pane := &EditorPaneModel{
-		width:    width,
-		height:   height,
-		textarea: ti,
-		err:      nil,
-		focused:  true,
-	}
-
-	pane.updateStyles()
-
-	return pane
 }
 
 func (m *EditorPaneModel) resizeTextArea() {
