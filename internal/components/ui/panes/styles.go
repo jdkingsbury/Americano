@@ -7,7 +7,7 @@ import (
 // Font Icons
 var (
 	caretRight = ""
-	caretdown  = ""
+	caretDown  = ""
 	dbIcon     = ""
 	dbAdd      = "󰆺"
 	dbConn     = "󱘩"

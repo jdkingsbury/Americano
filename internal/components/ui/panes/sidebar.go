@@ -2,20 +2,69 @@ package panes
 
 import (
 	"fmt"
+	"io"
+	"strings"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
+// TODO: Look into tabs to see if it will be a good option of switching
+// between connections and the database tree so we don't need to create another pane in the layout
+
 /* Handles the side bar pane */
 
+const (
+	listHeight = 14
+)
+
+// Define styles
+var (
+	titleStyle        = lipgloss.NewStyle().MarginLeft(1).Bold(true).Foreground(lipgloss.Color(text))
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(1)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color(rose))
+	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(1)
+	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(1).PaddingBottom(1)
+	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+)
+
 type SideBarItem struct {
-	Name      string
-	IsButton  bool
-	IsSection bool
-	SectionID int // ID to group items under each section
+	Name     string
+	IsButton bool
+}
+
+func (i SideBarItem) FilterValue() string { return i.Name }
+
+// Define custom delegate
+type itemDelegate struct{}
+
+func (d itemDelegate) Height() int                             { return 1 }
+func (d itemDelegate) Spacing() int                            { return 0 }
+func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(SideBarItem)
+	if !ok {
+		return
+	}
+
+	str := i.Name
+
+	fn := itemStyle.Render
+	if index == m.Index() {
+		fn = func(s ...string) string {
+			return selectedItemStyle.Render("> " + strings.Join(s, " "))
+		}
+	}
+
+	fmt.Fprint(w, fn(str))
+}
+
+type DatabaseConnection struct {
+	Name string
+	URL  string
 }
 
 type SideBarPaneModel struct {
@@ -23,13 +72,31 @@ type SideBarPaneModel struct {
 	activeStyles       lipgloss.Style
 	width              int
 	height             int
-	cursor             int
-	items              []SideBarItem
-	isCollapsed        map[int]bool // Track the collapsed state of each section
-	err                error
 	isActive           bool // Check if the pane is active
 	isAddingConnection bool
-	textInput          textinput.Model
+	list               list.Model
+	inputs             []textinput.Model
+	focusedIndex       int
+	err                error
+	connections        []DatabaseConnection
+}
+
+func (m *SideBarPaneModel) addConnection(name, url string) {
+	connection := DatabaseConnection{Name: name, URL: url}
+	m.connections = append(m.connections, connection)
+
+	// Append the new connection to the list
+	newItem := SideBarItem{Name: " 󰇯 " + name}
+	m.list.InsertItem(len(m.list.Items()), newItem)
+
+	// Set the new item as selected
+	m.list.Select(len(m.list.Items()) - 1)
+
+	// Reset after adding the connection
+	m.isAddingConnection = false
+	m.inputs[0].SetValue("")
+	m.inputs[1].SetValue("")
+	m.focusedIndex = 0
 }
 
 func (m *SideBarPaneModel) updateStyles() {
@@ -47,22 +114,40 @@ func (m *SideBarPaneModel) updateStyles() {
 }
 
 func NewSideBarPane(width, height int) *SideBarPaneModel {
-	ti := textinput.New()
-	ti.Placeholder = keyboard + " Enter Connection URL"
-	ti.Focus()
-	ti.CharLimit = 256
-	ti.Width = width/4 - 2
+	inputs := make([]textinput.Model, 2)
+
+	placeholders := []string{"Enter Name", "Enter Connection URL"}
+
+	for i := range inputs {
+		ti := textinput.New()
+		ti.Placeholder = placeholders[i]
+		ti.CharLimit = 256
+		ti.Width = width/4 - 2
+		if i == 0 {
+			ti.Focus()
+		}
+		inputs[i] = ti
+	}
+
+	items := []list.Item{
+		SideBarItem{Name: "󰆺 Add Connection", IsButton: true},
+	}
+
+	li := list.New(items, itemDelegate{}, width/4, listHeight)
+	li.Title = "Database Connections"
+	li.SetShowStatusBar(false)
+	li.SetFilteringEnabled(false)
+	li.SetShowHelp(false) // Disable help text
+	li.Styles.Title = titleStyle
+	li.Styles.PaginationStyle = paginationStyle
 
 	pane := &SideBarPaneModel{
-		width:  width,
-		height: height,
-		items: []SideBarItem{
-			{Name: "Database Connections", IsSection: true, SectionID: 1},
-			{Name: " 󰆺 Add Connection", IsButton: true, SectionID: 1},
-		},
-		isCollapsed: make(map[int]bool),
-		err:         nil,
-		textInput:   ti,
+		width:        width,
+		height:       height,
+		list:         li,
+		inputs:       inputs,
+		focusedIndex: 0,
+		err:          nil,
 	}
 
 	pane.updateStyles() // Initialize styles
@@ -85,28 +170,27 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.items)-1 {
-				m.cursor++
-			}
 		case "enter":
 			if m.isAddingConnection {
-				connectionURL := m.textInput.Value()
-				fmt.Println("Adding Connection:", connectionURL)
+				name := m.inputs[0].Value()
+				url := m.inputs[1].Value()
+				m.addConnection(name, url)
+				m.inputs[0].SetValue("")
+				m.inputs[1].SetValue("")
+				m.focusedIndex = 0
 				m.isAddingConnection = false
-				m.textInput.Reset()
-			} else if m.cursor < len(m.items) {
-				item := m.items[m.cursor]
-				if item.IsSection {
-					m.isCollapsed[item.SectionID] = !m.isCollapsed[item.SectionID]
-				} else if item.IsButton {
+			} else {
+				selectedItem := m.list.SelectedItem().(SideBarItem)
+				if selectedItem.IsButton {
 					m.isAddingConnection = true
-					m.textInput.Focus()
 				}
+			}
+
+		case "tab":
+			if m.isAddingConnection && m.focusedIndex > 0 {
+				m.focusedIndex--
+			} else if m.isAddingConnection && m.focusedIndex < len(m.inputs)-1 {
+				m.focusedIndex++
 			}
 		}
 
@@ -116,40 +200,31 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.isAddingConnection {
-		m.textInput, cmd = m.textInput.Update(msg)
+		for i := range m.inputs {
+			if i == m.focusedIndex {
+				m.inputs[i].Focus()
+			} else {
+				m.inputs[i].Blur()
+			}
+			m.inputs[i], cmd = m.inputs[i].Update(msg)
+		}
 		return m, cmd
 	}
 
+	m.list, cmd = m.list.Update(msg)
 	return m, cmd
 }
 
 func (m *SideBarPaneModel) View() string {
 	var content string
 
-	for i, item := range m.items {
-		itemStyle := lipgloss.NewStyle()
-
-		// Highlight item based on cursor position
-		if i == m.cursor {
-			itemStyle = itemStyle.Foreground(lipgloss.Color(rose)).Bold(true)
-		}
-
-		if item.IsSection {
-			sectionStyle := itemStyle.Bold(true)
-			if m.isCollapsed[item.SectionID] {
-				content += sectionStyle.Render(fmt.Sprintf("%s %s", caretRight, item.Name)) + "\n"
-			} else {
-				content += sectionStyle.Render(fmt.Sprintf("%s %s", caretdown, item.Name)) + "\n"
-			}
-		} else {
-			if !m.isCollapsed[item.SectionID] {
-				content += itemStyle.Render(item.Name) + "\n"
-			}
-		}
-	}
-
 	if m.isAddingConnection {
-		content += m.textInput.View()
+		for _, input := range m.inputs {
+			content += input.View() + "\n"
+		}
+	} else {
+		content += titleStyle.Render(m.list.Title) + "\n"
+		content += m.list.View()
 	}
 
 	var paneStyle lipgloss.Style
