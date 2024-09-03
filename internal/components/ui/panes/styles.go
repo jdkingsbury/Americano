@@ -1,17 +1,19 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )
 
 // Font Icons
 var (
 	caretRight = ""
-	caretdown  = ""
+	caretDown  = ""
 	dbIcon     = ""
 	dbAdd      = "󰆺"
 	dbConn     = "󱘩"
 	dbNotConn  = "󰴀"
+	keyboard   = "󰥻"
 )
 
 // Colors are from the Rose-Pine Colorscheme
@@ -32,3 +34,33 @@ var (
 	highlightMed  = lipgloss.Color("#dfdad9")
 	highlightHigh = lipgloss.Color("#cecacd")
 )
+
+/* Styles For Sidebar */
+var (
+	titleStyle        = lipgloss.NewStyle().MarginLeft(1).Bold(true).Foreground(lipgloss.Color(text))
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(1)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color(rose))
+	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(1)
+	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(1).PaddingBottom(1)
+	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+)
+
+type SideBarConfig struct {
+	TitleStyle        lipgloss.Style
+	ItemStyle         lipgloss.Style
+	SelectedItemStyle lipgloss.Style
+	PaginationStyle   lipgloss.Style
+	HelpStyle         lipgloss.Style
+	QuitTextStyle     lipgloss.Style
+}
+
+func NewSideBarConfig() *SideBarConfig {
+	return &SideBarConfig{
+		TitleStyle:        titleStyle,
+		ItemStyle:         itemStyle,
+		SelectedItemStyle: selectedItemStyle,
+		PaginationStyle:   paginationStyle,
+		HelpStyle:         helpStyle,
+		QuitTextStyle:     quitTextStyle,
+	}
+}
