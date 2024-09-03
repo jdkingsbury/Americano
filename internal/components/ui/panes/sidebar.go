@@ -3,6 +3,7 @@ package panes
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/msgtypes"
@@ -18,15 +19,17 @@ type SideBarItem struct {
 }
 
 type SideBarPaneModel struct {
-	styles       lipgloss.Style
-	activeStyles lipgloss.Style
-	width        int
-	height       int
-	cursor       int
-	items        []SideBarItem
-	isCollapsed  map[int]bool // Track the collapsed state of each section
-	err          error
-	isActive     bool // Check if the pane is active
+	styles             lipgloss.Style
+	activeStyles       lipgloss.Style
+	width              int
+	height             int
+	cursor             int
+	items              []SideBarItem
+	isCollapsed        map[int]bool // Track the collapsed state of each section
+	err                error
+	isActive           bool // Check if the pane is active
+	isAddingConnection bool
+	textInput          textinput.Model
 }
 
 func (m *SideBarPaneModel) updateStyles() {
@@ -41,6 +44,30 @@ func (m *SideBarPaneModel) updateStyles() {
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(love))
+}
+
+func NewSideBarPane(width, height int) *SideBarPaneModel {
+	ti := textinput.New()
+	ti.Placeholder = keyboard + " Enter Connection URL"
+	ti.Focus()
+	ti.CharLimit = 256
+	ti.Width = width/4 - 2
+
+	pane := &SideBarPaneModel{
+		width:  width,
+		height: height,
+		items: []SideBarItem{
+			{Name: "Database Connections", IsSection: true, SectionID: 1},
+			{Name: " 󰆺 Add Connection", IsButton: true, SectionID: 1},
+		},
+		isCollapsed: make(map[int]bool),
+		err:         nil,
+		textInput:   ti,
+	}
+
+	pane.updateStyles() // Initialize styles
+
+	return pane
 }
 
 func (m *SideBarPaneModel) Init() tea.Cmd {
@@ -67,12 +94,18 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter":
-			if m.cursor < len(m.items) {
+			if m.isAddingConnection {
+				connectionURL := m.textInput.Value()
+				fmt.Println("Adding Connection:", connectionURL)
+				m.isAddingConnection = false
+				m.textInput.Reset()
+			} else if m.cursor < len(m.items) {
 				item := m.items[m.cursor]
 				if item.IsSection {
 					m.isCollapsed[item.SectionID] = !m.isCollapsed[item.SectionID]
 				} else if item.IsButton {
-					fmt.Println("Button Clicked!")
+					m.isAddingConnection = true
+					m.textInput.Focus()
 				}
 			}
 		}
@@ -82,36 +115,24 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	return m, cmd
-}
-
-func NewSideBarPane(width, height int) *SideBarPaneModel {
-	pane := &SideBarPaneModel{
-		width:  width,
-		height: height,
-		items: []SideBarItem{
-			{Name: "Database Connections", IsSection: true, SectionID: 1},
-			{Name: " 󰆺 Add Connection", IsButton: true, SectionID: 1},
-		},
-    isCollapsed: make(map[int]bool),
-		err: nil,
+	if m.isAddingConnection {
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
 	}
 
-	pane.updateStyles() // Initialize styles
-
-	return pane
+	return m, cmd
 }
 
 func (m *SideBarPaneModel) View() string {
 	var content string
 
 	for i, item := range m.items {
-    itemStyle := lipgloss.NewStyle()
+		itemStyle := lipgloss.NewStyle()
 
-    // Highlight item based on cursor position
-    if i == m.cursor {
-      itemStyle = itemStyle.Foreground(lipgloss.Color(rose)).Bold(true)
-    }
+		// Highlight item based on cursor position
+		if i == m.cursor {
+			itemStyle = itemStyle.Foreground(lipgloss.Color(rose)).Bold(true)
+		}
 
 		if item.IsSection {
 			sectionStyle := itemStyle.Bold(true)
@@ -125,6 +146,10 @@ func (m *SideBarPaneModel) View() string {
 				content += itemStyle.Render(item.Name) + "\n"
 			}
 		}
+	}
+
+	if m.isAddingConnection {
+		content += m.textInput.View()
 	}
 
 	var paneStyle lipgloss.Style
