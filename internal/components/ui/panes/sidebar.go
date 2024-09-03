@@ -1,10 +1,6 @@
 package panes
 
 import (
-	"fmt"
-	"io"
-	"strings"
-
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,84 +8,31 @@ import (
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
-// TODO: Look into tabs to see if it will be a good option of switching
-// between connections and the database tree so we don't need to create another pane in the layout
-
 /* Handles the side bar pane */
 
-const (
-	listHeight = 14
-)
-
-// Define styles
-var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(1).Bold(true).Foreground(lipgloss.Color(text))
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(1)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color(rose))
-	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(1)
-	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(1).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
-)
-
-type SideBarItem struct {
-	Name     string
-	IsButton bool
-}
-
-func (i SideBarItem) FilterValue() string { return i.Name }
-
-// Define custom delegate
-type itemDelegate struct{}
-
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 0 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(SideBarItem)
-	if !ok {
-		return
-	}
-
-	str := i.Name
-
-	fn := itemStyle.Render
-	if index == m.Index() {
-		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
-		}
-	}
-
-	fmt.Fprint(w, fn(str))
-}
-
-type SideBarView int
-
-const (
-	ConnectionsView SideBarView = iota
-	DBTreeView
-)
-
-type DatabaseConnection struct {
-	Name string
-	URL  string
-}
+// TODO: Look to see if we will need to create different instances of list
+// for the db tree or if bubble tea has another way of creating the tree.
+// list is used for using the Bubble Tea list.
 
 type SideBarPaneModel struct {
-	styles             lipgloss.Style
-	activeStyles       lipgloss.Style
+	listConfig         *SideBarConfig       // Bubble Tea List Syle
+	styles             lipgloss.Style       // Normal Pane Style
+	activeStyles       lipgloss.Style       // Active Pane Style
 	width              int
 	height             int
-	isActive           bool // Check if the pane is active
-	isAddingConnection bool
-	list               list.Model
+	isActive           bool                 // Check if the pane is active
+	isAddingConnection bool                 // Check if adding a connection
+	list               list.Model           // For storing list items
 	inputs             []textinput.Model
 	focusedIndex       int
 	err                error
-	connections        []DatabaseConnection
-	currentView        SideBarView
+	connections        []DatabaseConnection // List of Database Connections
+	currentView        SideBarView          // Display SideBar Views
 }
 
+// Initialize Side Bar Pane
 func NewSideBarPane(width, height int) *SideBarPaneModel {
+	listConfig := NewSideBarConfig()
 	inputs := make([]textinput.Model, 2)
 
 	placeholders := []string{"Enter Name", "Enter Connection URL"}
@@ -114,10 +57,11 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 	li.SetShowStatusBar(false)
 	li.SetFilteringEnabled(false)
 	li.SetShowHelp(false) // Disable help text
-	li.Styles.Title = titleStyle
-	li.Styles.PaginationStyle = paginationStyle
+	li.Styles.Title = listConfig.TitleStyle
+	li.Styles.PaginationStyle = listConfig.PaginationStyle
 
 	pane := &SideBarPaneModel{
+		listConfig:   listConfig,
 		width:        width,
 		height:       height,
 		list:         li,
@@ -131,6 +75,24 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 	return pane
 }
 
+// Code for changing from active to inactive window
+func (m *SideBarPaneModel) updateStyles() {
+	m.styles = lipgloss.NewStyle().
+		Width(m.width / 4).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(iris))
+
+	m.activeStyles = lipgloss.NewStyle().
+		Width(m.width / 4).
+		Height(m.height - 17).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(rose))
+}
+
+// TODO: Create Checks to ensure both fields are filled and to check if the connection is valid
+
+// Code for adding a DB Connection
 func (m *SideBarPaneModel) addConnection(name, url string) {
 	connection := DatabaseConnection{Name: name, URL: url}
 	m.connections = append(m.connections, connection)
@@ -149,28 +111,18 @@ func (m *SideBarPaneModel) addConnection(name, url string) {
 	m.focusedIndex = 0
 }
 
-func (m *SideBarPaneModel) updateStyles() {
-	m.styles = lipgloss.NewStyle().
-		Width(m.width / 4).
-		Height(m.height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(iris))
 
-	m.activeStyles = lipgloss.NewStyle().
-		Width(m.width / 4).
-		Height(m.height - 17).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(rose))
-}
-
+// Code for functionality on start
 func (m *SideBarPaneModel) Init() tea.Cmd {
 	return nil
 }
 
+// Code for updating the state
 func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+  // Fetch Window Size
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -179,6 +131,7 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 
+		// Keymap to switch Side Bar views
 		case "v":
 			if m.currentView == ConnectionsView {
 				m.currentView = DBTreeView
@@ -186,6 +139,7 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = ConnectionsView
 			}
 
+			// Keymap to exit and add the db connection
 		case "enter":
 			if m.isAddingConnection && m.currentView == ConnectionsView {
 				name := m.inputs[0].Value()
@@ -202,6 +156,7 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
+			// Keymap to switch between text fields
 		case "up", "down":
 			if m.isAddingConnection && m.currentView == ConnectionsView {
 				if m.isAddingConnection && m.focusedIndex > 0 {
@@ -210,7 +165,6 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focusedIndex++
 				}
 			}
-
 		}
 
 	case msgtypes.ErrMsg:
@@ -218,6 +172,7 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Checks to see if we are adding a connection and which text field we are in
 	if m.isAddingConnection {
 		for i := range m.inputs {
 			if i == m.focusedIndex {
@@ -234,9 +189,11 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Side Bar Views
 func (m *SideBarPaneModel) View() string {
 	var content string
 
+	// Connection Views
 	switch m.currentView {
 	case ConnectionsView:
 		if m.isAddingConnection {

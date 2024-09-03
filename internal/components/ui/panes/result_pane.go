@@ -14,6 +14,7 @@ type ResultPaneModel struct {
 	isActive     bool
 }
 
+// Initialize Result Pane
 func NewResultPane(width, height int) *ResultPaneModel {
 	pane := &ResultPaneModel{
 		width:  width,
@@ -26,6 +27,7 @@ func NewResultPane(width, height int) *ResultPaneModel {
 	return pane
 }
 
+// Code for changing from active to inactive window
 func (m *ResultPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 3).
@@ -40,10 +42,12 @@ func (m *ResultPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+// Code for functionality on start
 func (m *ResultPaneModel) Init() tea.Cmd {
 	return nil
 }
 
+// Code for updating the state
 func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -60,6 +64,7 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// Result Pane View
 func (m *ResultPaneModel) View() string {
 	var paneStyle lipgloss.Style
 	if m.isActive {

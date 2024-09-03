@@ -5,6 +5,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// TODO: See if we can use the help bubble tea component to help with keymaps
+
+/* Basic Footer View */
+
 type FooterModel struct {
 	style  lipgloss.Style
 	width  int

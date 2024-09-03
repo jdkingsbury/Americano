@@ -20,6 +20,7 @@ type EditorPaneModel struct {
 	isActive     bool
 }
 
+// Initialize Editor Pane
 func NewEditorPane(width, height int) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
@@ -39,6 +40,7 @@ func NewEditorPane(width, height int) *EditorPaneModel {
 	return pane
 }
 
+// Code for changing from active to inactive window
 func (m *EditorPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 40).
@@ -53,10 +55,12 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+// Code for functionality on start
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
 }
 
+// Code for updating the state
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -69,6 +73,8 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.Type {
+
+		// Keymap to switch stop editing
 		case tea.KeyEsc:
 			if m.textarea.Focused() {
 				m.textarea.Blur()
@@ -78,9 +84,6 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focused = true
 				cmds = append(cmds, cmd)
 			}
-
-		case tea.KeyCtrlC:
-			return m, tea.Quit
 
 		default:
 			if !m.textarea.Focused() {
@@ -101,11 +104,13 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// Helper function to resize the text area
 func (m *EditorPaneModel) resizeTextArea() {
 	m.textarea.SetWidth(m.width - 40)
 	m.textarea.SetHeight(m.height - 17)
 }
 
+// Editor View
 func (m EditorPaneModel) View() string {
 	// Render text area inside the main pane
 
