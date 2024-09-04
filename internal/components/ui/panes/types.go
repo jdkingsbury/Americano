@@ -45,6 +45,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 // SideBar Item types
 type SideBarItem struct {
 	Name     string
+	URL      string
 	IsButton bool
 }
 type SideBarView int
@@ -54,9 +55,3 @@ const (
 	ConnectionsView SideBarView = iota
 	DBTreeView
 )
-
-// Database Connection types for Side Bar
-type DatabaseConnection struct {
-	Name string
-	URL  string
-}

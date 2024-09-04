@@ -1,33 +1,38 @@
 package panes
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/components/drivers"
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 /* Handles the side bar pane */
 
-// TODO: Look to see if we will need to create different instances of list
-// for the db tree or if bubble tea has another way of creating the tree.
+// TODO:
+// - Look to see if we will need to create different instances of list
+//   for the db tree or if bubble tea has another way of creating the tree.
+// - Work on adding a timer to clear the error message
+
 // list is used for using the Bubble Tea list.
 
 type SideBarPaneModel struct {
-	listConfig         *SideBarConfig       // Bubble Tea List Syle
-	styles             lipgloss.Style       // Normal Pane Style
-	activeStyles       lipgloss.Style       // Active Pane Style
+	listConfig         *SideBarConfig // Bubble Tea List Syle
+	styles             lipgloss.Style // Normal Pane Style
+	activeStyles       lipgloss.Style // Active Pane Style
 	width              int
 	height             int
-	isActive           bool                 // Check if the pane is active
-	isAddingConnection bool                 // Check if adding a connection
-	list               list.Model           // For storing list items
+	isActive           bool       // Check if the pane is active
+	isAddingConnection bool       // Check if adding a connection
+	list               list.Model // For storing list items
 	inputs             []textinput.Model
 	focusedIndex       int
 	err                error
-	connections        []DatabaseConnection // List of Database Connections
-	currentView        SideBarView          // Display SideBar Views
+	currentView        SideBarView // Display SideBar Views
 }
 
 // Initialize Side Bar Pane
@@ -90,15 +95,14 @@ func (m *SideBarPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
-// TODO: Create Checks to ensure both fields are filled and to check if the connection is valid
-
 // Code for adding a DB Connection
 func (m *SideBarPaneModel) addConnection(name, url string) {
-	connection := DatabaseConnection{Name: name, URL: url}
-	m.connections = append(m.connections, connection)
-
+	if name == "" || url == "" {
+		m.err = fmt.Errorf("name and URL cannot be empty")
+		return
+	}
 	// Append the new connection to the list
-	newItem := SideBarItem{Name: " 󰇯 " + name}
+	newItem := SideBarItem{Name: " 󰇯 " + name, URL: url}
 	m.list.InsertItem(len(m.list.Items()), newItem)
 
 	// Set the new item as selected
@@ -111,7 +115,6 @@ func (m *SideBarPaneModel) addConnection(name, url string) {
 	m.focusedIndex = 0
 }
 
-
 // Code for functionality on start
 func (m *SideBarPaneModel) Init() tea.Cmd {
 	return nil
@@ -122,7 +125,7 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-  // Fetch Window Size
+	// Fetch Window Size
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -153,6 +156,15 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				selectedItem := m.list.SelectedItem().(SideBarItem)
 				if selectedItem.IsButton {
 					m.isAddingConnection = true
+				} else {
+					// Create an instance of SQLite
+					sqlitedb := drivers.SQLite{Provider: "sqlite3"}
+					url := selectedItem.URL
+					if err := sqlitedb.TestConnection(url); err != nil {
+						m.err = fmt.Errorf("failed to connect to the db: %v", err)
+					} else {
+						m.err = nil
+					}
 				}
 			}
 
