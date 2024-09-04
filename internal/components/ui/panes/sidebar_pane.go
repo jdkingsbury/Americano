@@ -2,6 +2,7 @@ package panes
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -17,6 +18,7 @@ import (
 // - Look to see if we will need to create different instances of list
 //   for the db tree or if bubble tea has another way of creating the tree.
 // - Work on adding a timer to clear the error message
+// - Look into bug where when selecting the db the list renders again under the selected item
 
 // list is used for using the Bubble Tea list.
 
@@ -33,6 +35,7 @@ type SideBarPaneModel struct {
 	focusedIndex       int
 	err                error
 	currentView        SideBarView // Display SideBar Views
+	database           drivers.Database
 }
 
 // Initialize Side Bar Pane
@@ -95,15 +98,34 @@ func (m *SideBarPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+func (m *SideBarPaneModel) connectToDatabase(url string) error {
+	if m.database == nil {
+		return fmt.Errorf("no database provider selected")
+	}
+
+	if err := m.database.TestConnection(url); err != nil {
+		m.err = fmt.Errorf("failed to connect to the db: %v", err)
+		fmt.Println(m.err)
+		return err
+	}
+
+	fmt.Println("connection successful")
+	m.err = nil
+	return nil
+}
+
 // Code for adding a DB Connection
 func (m *SideBarPaneModel) addConnection(name, url string) {
 	if name == "" || url == "" {
 		m.err = fmt.Errorf("name and URL cannot be empty")
 		return
 	}
+
 	// Append the new connection to the list
 	newItem := SideBarItem{Name: " 󰇯 " + name, URL: url}
-	m.list.InsertItem(len(m.list.Items()), newItem)
+	m.list.InsertItem(sort.Search(len(m.list.Items()), func(i int) bool {
+		return m.list.Items()[i].(SideBarItem).Name > newItem.Name
+	}), newItem)
 
 	// Set the new item as selected
 	m.list.Select(len(m.list.Items()) - 1)
@@ -130,13 +152,14 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.updateStyles()
+		m.list.SetSize(m.width/4, m.height-17)
 
 	case tea.KeyMsg:
 		switch msg.String() {
 
 		// Keymap to switch Side Bar views
 		case "v":
-			if m.currentView == ConnectionsView {
+			if m.currentView == ConnectionsView && !m.isAddingConnection {
 				m.currentView = DBTreeView
 			} else {
 				m.currentView = ConnectionsView
@@ -158,18 +181,15 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.isAddingConnection = true
 				} else {
 					// Create an instance of SQLite
-					sqlitedb := drivers.SQLite{Provider: "sqlite3"}
-					url := selectedItem.URL
-					if err := sqlitedb.TestConnection(url); err != nil {
-						m.err = fmt.Errorf("failed to connect to the db: %v", err)
-					} else {
-						m.err = nil
-					}
+          m.database = &drivers.SQLite{Provider: "sqlite3"}
+          if err := m.connectToDatabase(selectedItem.URL); err != nil {
+            return m, nil
+          }
 				}
 			}
 
 			// Keymap to switch between text fields
-		case "up", "down":
+		case "up", "down", "tab":
 			if m.isAddingConnection && m.currentView == ConnectionsView {
 				if m.isAddingConnection && m.focusedIndex > 0 {
 					m.focusedIndex--

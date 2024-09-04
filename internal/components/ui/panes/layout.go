@@ -87,8 +87,22 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updatePaneSizes()
 
 	case tea.KeyMsg:
-		switch msg.String() {
 
+		// Check if Adding Connection to disable layout commands temporarily
+		if m.currentPane == SideBarPane {
+			sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+			if sideBarPane.isAddingConnection {
+				break
+			}
+      // Check if using the editor pane
+		} else if m.currentPane == EditorPane {
+			editorPane := m.panes[EditorPane].(*EditorPaneModel)
+			if editorPane.focused {
+				break
+			}
+		}
+
+		switch msg.String() {
 		// Keymap For Switching To Next Pane. Also Changes The Active Pane
 		case "tab":
 			// Deactivate current pane
