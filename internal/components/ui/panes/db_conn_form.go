@@ -1,5 +1,8 @@
 package panes
 
+// A simple example demonstrating the use of multiple text input components
+// from the Bubbles component library.
+
 import (
 	"fmt"
 	"strings"
@@ -21,62 +24,56 @@ var (
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 )
 
-type DBConnInputModel struct {
-	focusIndex   int
-	inputs       []textinput.Model
-	cursorMode   cursor.Mode
-	isAddingConn bool
+type DBFormModel struct {
+	focusIndex int
+	inputs     []textinput.Model
+	cursorMode cursor.Mode
 }
 
-func NewConnInputModel(width int) *DBConnInputModel {
+func NewDBFormModel() *DBFormModel {
 	inputs := make([]textinput.Model, 2)
 
+	var t textinput.Model
 	for i := range inputs {
-		ti := textinput.New()
-		ti.Cursor.Style = cursorStyle
-		ti.CharLimit = 150
-		ti.Width = width/4 - 2
+		t = textinput.New()
+		t.Cursor.Style = cursorStyle
+		t.CharLimit = 150
 
 		switch i {
 		case 0:
-			ti.Placeholder = "Enter Connection Name"
-			ti.Focus()
-			ti.PromptStyle = focusedStyle
-			ti.TextStyle = focusedStyle
+			t.Placeholder = "Enter Connection Name"
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
 		case 1:
-			ti.Placeholder = "Enter Connection URL"
-			ti.Focus()
-			ti.PromptStyle = focusedStyle
-			ti.TextStyle = focusedStyle
+			t.Placeholder = "Enter Connection URL"
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
 		}
 
-		inputs[i] = ti
+		inputs[i] = t
 	}
 
-	m := &DBConnInputModel{
-		inputs: inputs,
+	view := &DBFormModel{
+		focusIndex: 0,
+		inputs:     inputs,
 	}
 
-	return m
+	return view
 }
 
-func (m *DBConnInputModel) addConnection(name, url string) {
-	if name == "" || url == "" {
-		fmt.Println("Name and url cannot be empty")
-	} else {
-		fmt.Printf("Added connection: %s (%s\n", name, url)
-	}
-}
-
-func (m *DBConnInputModel) Init() tea.Cmd {
+func (m *DBFormModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m *DBConnInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "ctrl+c", "esc":
+			return m, nil
 
+		// Change cursor mode
 		case "ctrl+r":
 			m.cursorMode++
 			if m.cursorMode > cursor.CursorHide {
@@ -88,27 +85,26 @@ func (m *DBConnInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Batch(cmds...)
 
-		case "tab", "shift+tab", "enter", "up", "down":
-			s := msg.String()
-			if s == "enter" && m.focusIndex == len(m.inputs) {
-				name := m.inputs[0].Value()
-				url := m.inputs[1].Value()
-				m.addConnection(name, url)
-				return m, tea.Quit
+		// Set focus to next input
+		case "tab":
+			m.focusIndex++
+		case "shift+tab", "up":
+			m.focusIndex--
+		case "down":
+			m.focusIndex++
+		case "enter":
+			// Did the user press enter while the submit button was focused?
+			// If so, exit or trigger form submit logic
+			if m.focusIndex == len(m.inputs) {
+				fmt.Println("Form submitted!") // Placeholder for form submission logic
+				return m, nil
 			}
+		}
 
-			// Cycle indexes
-			if s == "up" || s == "shift+tab" {
-				m.focusIndex--
-			} else {
-				m.focusIndex++
-			}
-
-			if m.focusIndex > len(m.inputs) {
-				m.focusIndex = 0
-			} else if m.focusIndex < 0 {
-				m.focusIndex = len(m.inputs)
-			}
+		// Cycle indexes
+		if m.focusIndex > len(m.inputs) {
+			m.focusIndex = 0
+		} else if m.focusIndex < 0 {
 
 			cmds := make([]tea.Cmd, len(m.inputs))
 			for i := 0; i <= len(m.inputs)-1; i++ {
@@ -131,12 +127,15 @@ func (m *DBConnInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle character input and blinking
 	cmd := m.updateInputs(msg)
+
 	return m, cmd
 }
 
-func (m *DBConnInputModel) updateInputs(msg tea.Msg) tea.Cmd {
+func (m *DBFormModel) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
+	// Only text inputs with Focus() set will respond, so it's safe to simply
+	// update all of them here without any further logic.
 	for i := range m.inputs {
 		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
 	}
@@ -144,7 +143,7 @@ func (m *DBConnInputModel) updateInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m *DBConnInputModel) View() string {
+func (m DBFormModel) View() string {
 	var b strings.Builder
 
 	for i := range m.inputs {

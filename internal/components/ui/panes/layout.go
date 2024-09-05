@@ -25,7 +25,7 @@ type LayoutModel struct {
 func NewLayoutModel() *LayoutModel {
 	sideBarPane := NewSideBarPane(0, 0)
 	editorPane := NewEditorPane(0, 0)
-	resultPane := NewResultPane(0, 0)
+	resultPane := NewResultPaneModel(0, 0)
 	footerPane := NewFooterPane(0)
 
 	layout := &LayoutModel{

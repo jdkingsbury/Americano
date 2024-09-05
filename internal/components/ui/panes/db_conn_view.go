@@ -92,9 +92,7 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				if item.isButton {
 					// Notify SidebarPane model that the Add Connection button was clicked
-					return m, func() tea.Msg {
-						return tea.Msg("add-connection-clicked")
-					}
+          fmt.Println("Clicked Button")
 				} else {
 					m.choice = item
 					fmt.Println(item.Name)

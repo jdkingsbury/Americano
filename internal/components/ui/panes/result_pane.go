@@ -15,7 +15,7 @@ type ResultPaneModel struct {
 }
 
 // Initialize Result Pane
-func NewResultPane(width, height int) *ResultPaneModel {
+func NewResultPaneModel(width, height int) *ResultPaneModel {
 	pane := &ResultPaneModel{
 		width:  width,
 		height: height,
