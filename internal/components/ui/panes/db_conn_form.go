@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Bold(true)   // Rose for focused input
-	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true) // Muted for unfocused input
-	submitStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true)   // Rose for the submit button
-	blurredSubmit = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true) // Muted for inactive submit button
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Bold(true).Padding(0, 1)   // Rose for focused input
+	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true).Padding(0, 1) // Muted for unfocused input
+	submitStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true).Padding(0, 1)   // Rose for the submit button
+	blurredSubmit = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true).Padding(0, 1) // Muted for inactive submit button
 )
 
 type CancelFormMsg struct{}
@@ -133,9 +133,9 @@ func (m *DBFormModel) View() string {
 
 	// Render submit button
 	if m.focusIndex == len(m.inputs) { // Focused state for submit button
-		output += submitStyle.Render( "[ Submit ]")
+		output += submitStyle.Render("\n[ Submit ]\n")
 	} else {
-		output += blurredStyle.Render( "Submit")
+		output += blurredStyle.Render("\nSubmit\n")
 	}
 
 	return output
