@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Bold(true).Padding(0, 1)   // Rose for focused input
-	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true).Padding(0, 1) // Muted for unfocused input
-	submitStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true).Padding(0, 1)   // Rose for the submit button
-	blurredSubmit = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true).Padding(0, 1) // Muted for inactive submit button
+	formTitleStyle    = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
+	formFocusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true).Padding(0, 1)    // Rose for focused input
+	formBlurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(subtle)).Faint(true).Padding(0, 1) // Muted for unfocused input
+	formSubmitStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true).Padding(0, 1)    // Rose for the submit button
+	formBlurredSubmit = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true).Padding(0, 1)  // Muted for inactive submit button
 )
 
 type CancelFormMsg struct{}
@@ -24,12 +25,14 @@ type DBFormModel struct {
 	focusIndex int
 	inputs     []textinput.Model
 	submit     string
+	title      string
 }
 
 func NewDBFormModel() *DBFormModel {
 	m := DBFormModel{
 		inputs: make([]textinput.Model, 2),
 		submit: "[ Submit ]", // Initialize the submit button label
+		title:  dbAdd + " Add Connection",
 	}
 
 	// Initialize text inputs
@@ -122,20 +125,22 @@ func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *DBFormModel) View() string {
 	var output string
 
+	output += formTitleStyle.Render(m.title) + "\n"
+
 	// Render all input fields
 	for i := range m.inputs {
 		if i == m.focusIndex {
-			output += focusedStyle.Render(m.inputs[i].View()) + "\n"
+			output += formFocusedStyle.Render(m.inputs[i].View()) + "\n"
 		} else {
-			output += blurredStyle.Render(m.inputs[i].View()) + "\n"
+			output += formBlurredStyle.Render(m.inputs[i].View()) + "\n"
 		}
 	}
 
 	// Render submit button
 	if m.focusIndex == len(m.inputs) { // Focused state for submit button
-		output += submitStyle.Render("\n[ Submit ]\n")
+		output += formSubmitStyle.Render("\n[ Submit ]\n")
 	} else {
-		output += blurredStyle.Render("\nSubmit\n")
+		output += formBlurredSubmit.Render("\nSubmit\n")
 	}
 
 	return output

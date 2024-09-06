@@ -13,12 +13,10 @@ import (
 const listHeight = 14
 
 var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color(rose))
-	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+	listTitleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
+	listItemStyle         = lipgloss.NewStyle().PaddingLeft(4)
+	listSelectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color(rose))
+	listPaginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 )
 
 type DBConnItems struct {
@@ -42,10 +40,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	str := fmt.Sprintf("%s", i.Name)
 
-	fn := itemStyle.Render
+	fn := listItemStyle.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
+			return listSelectedItemStyle.Render("> " + strings.Join(s, " "))
 		}
 	}
 
@@ -68,8 +66,8 @@ func NewDBConnModel(width int) *DBConnModel {
 	li.SetShowStatusBar(false)
 	li.SetFilteringEnabled(false)
 	li.SetShowHelp(false)
-	li.Styles.Title = titleStyle
-	li.Styles.PaginationStyle = paginationStyle
+	li.Styles.Title = listTitleStyle
+	li.Styles.PaginationStyle = listPaginationStyle
 
 	pane := &DBConnModel{
 		list: li,
@@ -93,12 +91,13 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+    // TODO: Change to have enter handle connecting to DB
 		case "enter":
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok {
 				if item.isButton {
 					// Notify SidebarPane model that the Add Connection button was clicked
-          fmt.Println("Button Clicked")
+					fmt.Println("Button Clicked")
 					// return m, func() tea.Msg { return SubmitFormMsg{} }
 				} else if item.URL != "" {
 					m.choice = item
@@ -119,7 +118,7 @@ func (m *DBConnModel) Init() tea.Cmd {
 func (m *DBConnModel) View() string {
 	var content string
 
-	content += titleStyle.Render(m.list.Title)
+	content += listTitleStyle.Render(m.list.Title)
 	content += m.list.View()
 
 	return content
