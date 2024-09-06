@@ -89,12 +89,13 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 
 		// Check if Adding Connection to disable layout commands temporarily
-		// if m.currentPane == SideBarPane {
-		// 	sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
-		// 	if sideBarPane.isAddingConnection {
-		// 		break
-		// 	}
-  //     // Check if using the editor pane
+		if m.currentPane == SideBarPane {
+			sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+			if sideBarPane.showInputForm {
+				break
+			}
+		}
+		//     // Check if using the editor pane
 		// } else if m.currentPane == EditorPane {
 		// 	editorPane := m.panes[EditorPane].(*EditorPaneModel)
 		// 	if editorPane.focused {

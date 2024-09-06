@@ -53,8 +53,9 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type DBConnModel struct {
-	list   list.Model
-	choice DBConnItems
+	list       list.Model
+	choice     DBConnItems
+	focusIndex int
 }
 
 func NewDBConnModel(width int) *DBConnModel {
@@ -81,6 +82,11 @@ func (m *DBConnModel) AddConnection(name, url string) {
 	m.list.InsertItem(len(m.list.Items()), DBConnItems{Name: name, URL: url, isButton: false})
 }
 
+func (m *DBConnModel) FocusedOnButton() bool {
+	item, ok := m.list.SelectedItem().(DBConnItems)
+	return ok && item.isButton
+}
+
 func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -92,8 +98,9 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok {
 				if item.isButton {
 					// Notify SidebarPane model that the Add Connection button was clicked
-          fmt.Println("Clicked Button")
-				} else {
+          fmt.Println("Button Clicked")
+					// return m, func() tea.Msg { return SubmitFormMsg{} }
+				} else if item.URL != "" {
 					m.choice = item
 					fmt.Println(item.Name)
 				}

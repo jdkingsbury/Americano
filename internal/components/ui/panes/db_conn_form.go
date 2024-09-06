@@ -1,163 +1,130 @@
 package panes
 
-// A simple example demonstrating the use of multiple text input components
-// from the Bubbles component library.
-
 import (
-	"fmt"
-	"strings"
-
-	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle
-	noStyle             = lipgloss.NewStyle()
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+type CancelFormMsg struct{}
 
-	focusedButton = focusedStyle.Render("[ Submit ]")
-	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
-)
+type SubmitFormMsg struct {
+	Name string
+	URL  string
+}
 
 type DBFormModel struct {
 	focusIndex int
 	inputs     []textinput.Model
-	cursorMode cursor.Mode
+	submit     string
 }
 
 func NewDBFormModel() *DBFormModel {
-	inputs := make([]textinput.Model, 2)
+	m := DBFormModel{
+		inputs: make([]textinput.Model, 2),
+		submit: "[ Submit ]", // Initialize the submit button label
+	}
 
-	var t textinput.Model
-	for i := range inputs {
-		t = textinput.New()
-		t.Cursor.Style = cursorStyle
-		t.CharLimit = 150
+	// Initialize text inputs
+	var ti textinput.Model
+	for i := range m.inputs {
+		ti = textinput.New()
+		ti.CharLimit = 156
+		ti.Width = 20
 
 		switch i {
 		case 0:
-			t.Placeholder = "Enter Connection Name"
-			t.Focus()
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
+			ti.Placeholder = "Enter Connection Name"
+			ti.Focus() // Focus on the first input initially
 		case 1:
-			t.Placeholder = "Enter Connection URL"
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
+			ti.Placeholder = "Enter Connection URL"
 		}
 
-		inputs[i] = t
+		m.inputs[i] = ti // Assign the initialized textinput.Model back to the slice
 	}
 
-	view := &DBFormModel{
-		focusIndex: 0,
-		inputs:     inputs,
-	}
+	return &m
+}
 
-	return view
+func (m *DBFormModel) Reset() {
+	m.focusIndex = 0
+	for i := range m.inputs {
+		m.inputs[i].SetValue("") // Clear input
+		if i == 0 {
+			m.inputs[i].Focus()
+		} else {
+			m.inputs[i].Blur()
+		}
+	}
 }
 
 func (m *DBFormModel) Init() tea.Cmd {
-	return textinput.Blink
+	return textinput.Blink // Enable blinking cursor for focused input
 }
 
 func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "esc":
-			return m, nil
-
-		// Change cursor mode
-		case "ctrl+r":
-			m.cursorMode++
-			if m.cursorMode > cursor.CursorHide {
-				m.cursorMode = cursor.CursorBlink
+		case "esc":
+			return m, func() tea.Msg {
+				return CancelFormMsg{}
 			}
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := range m.inputs {
-				cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
-			}
-			return m, tea.Batch(cmds...)
-
-		// Set focus to next input
-		case "tab":
-			m.focusIndex++
-		case "shift+tab", "up":
-			m.focusIndex--
-		case "down":
-			m.focusIndex++
+		case "tab": // Tab moves forward through inputs and submit button
+			m.focusIndex = (m.focusIndex + 1) % (len(m.inputs) + 1) // Include submit button
+		case "shift+tab": // Shift+Tab moves backward through inputs and submit button
+			m.focusIndex = (m.focusIndex - 1 + len(m.inputs) + 1) % (len(m.inputs) + 1)
+		case "down": // Down arrow moves forward through inputs and submit button
+			m.focusIndex = (m.focusIndex + 1) % (len(m.inputs) + 1)
+		case "up": // Up arrow moves backward through inputs and submit button
+			m.focusIndex = (m.focusIndex - 1 + len(m.inputs) + 1) % (len(m.inputs) + 1)
 		case "enter":
-			// Did the user press enter while the submit button was focused?
-			// If so, exit or trigger form submit logic
 			if m.focusIndex == len(m.inputs) {
-				fmt.Println("Form submitted!") // Placeholder for form submission logic
-				return m, nil
-			}
-		}
-
-		// Cycle indexes
-		if m.focusIndex > len(m.inputs) {
-			m.focusIndex = 0
-		} else if m.focusIndex < 0 {
-
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := 0; i <= len(m.inputs)-1; i++ {
-				if i == m.focusIndex {
-					// Set focused state
-					cmds[i] = m.inputs[i].Focus()
-					m.inputs[i].PromptStyle = focusedStyle
-					m.inputs[i].TextStyle = focusedStyle
-					continue
+				// Submit button is focused, handle form submission
+				return m, func() tea.Msg {
+					return SubmitFormMsg{
+						Name: m.inputs[0].Value(),
+						URL:  m.inputs[1].Value(),
+					}
 				}
-				// Remove focused state
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-				m.inputs[i].TextStyle = noStyle
 			}
+		}
 
-			return m, tea.Batch(cmds...)
+		// Update focus for inputs
+		for i := range m.inputs {
+			if i == m.focusIndex {
+				m.inputs[i].Focus()
+			} else {
+				m.inputs[i].Blur()
+			}
 		}
 	}
 
-	// Handle character input and blinking
-	cmd := m.updateInputs(msg)
+	// Update all inputs
+	for i := range m.inputs {
+		var cmd tea.Cmd
+		m.inputs[i], cmd = m.inputs[i].Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
-func (m *DBFormModel) updateInputs(msg tea.Msg) tea.Cmd {
-	cmds := make([]tea.Cmd, len(m.inputs))
+func (m *DBFormModel) View() string {
+	var output string
 
-	// Only text inputs with Focus() set will respond, so it's safe to simply
-	// update all of them here without any further logic.
+	// Render all input fields
 	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+		output += m.inputs[i].View() + "\n"
 	}
 
-	return tea.Batch(cmds...)
-}
-
-func (m DBFormModel) View() string {
-	var b strings.Builder
-
-	for i := range m.inputs {
-		b.WriteString(m.inputs[i].View())
-		if i < len(m.inputs)-1 {
-			b.WriteRune('\n')
-		}
+	// Render submit button
+	if m.focusIndex == len(m.inputs) { // Focused state for submit button
+		output += "[ Submit ]"
+	} else {
+		output += "Submit"
 	}
 
-	button := &blurredButton
-	if m.focusIndex == len(m.inputs) {
-		button = &focusedButton
-	}
-	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
-
-	return b.String()
+	return output
 }
