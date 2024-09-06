@@ -3,6 +3,14 @@ package panes
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Bold(true)   // Rose for focused input
+	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true) // Muted for unfocused input
+	submitStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Bold(true)   // Rose for the submit button
+	blurredSubmit = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Faint(true) // Muted for inactive submit button
 )
 
 type CancelFormMsg struct{}
@@ -116,14 +124,18 @@ func (m *DBFormModel) View() string {
 
 	// Render all input fields
 	for i := range m.inputs {
-		output += m.inputs[i].View() + "\n"
+		if i == m.focusIndex {
+			output += focusedStyle.Render(m.inputs[i].View()) + "\n"
+		} else {
+			output += blurredStyle.Render(m.inputs[i].View()) + "\n"
+		}
 	}
 
 	// Render submit button
 	if m.focusIndex == len(m.inputs) { // Focused state for submit button
-		output += "[ Submit ]"
+		output += submitStyle.Render( "[ Submit ]")
 	} else {
-		output += "Submit"
+		output += blurredStyle.Render( "Submit")
 	}
 
 	return output
