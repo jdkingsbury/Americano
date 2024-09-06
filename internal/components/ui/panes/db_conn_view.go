@@ -14,8 +14,8 @@ const listHeight = 14
 
 var (
 	listTitleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
-	listItemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	listSelectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color(rose))
+	listItemStyle         = lipgloss.NewStyle().Padding(0, 1)
+	listSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose))
 	listPaginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 )
 
@@ -91,7 +91,7 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-    // TODO: Change to have enter handle connecting to DB
+		// TODO: Change to have enter handle connecting to DB
 		case "enter":
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok {

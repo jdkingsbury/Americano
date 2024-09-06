@@ -32,7 +32,7 @@ func NewDBFormModel() *DBFormModel {
 	m := DBFormModel{
 		inputs: make([]textinput.Model, 2),
 		submit: "[ Submit ]", // Initialize the submit button label
-		title:  dbAdd + " Add Connection",
+		title:  "Add Connection",
 	}
 
 	// Initialize text inputs
