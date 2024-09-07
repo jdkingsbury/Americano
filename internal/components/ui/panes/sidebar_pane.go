@@ -47,13 +47,13 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 
 func (m *SideBarPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
-		Width(m.width / 4).
+		Width(( m.width / 3 ) - 10).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(iris))
 
 	m.activeStyles = lipgloss.NewStyle().
-		Width(m.width / 4).
+		Width(( m.width / 3 ) - 10).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(rose))
