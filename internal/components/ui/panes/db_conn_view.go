@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/components/drivers"
 )
 
 const listHeight = 14
@@ -94,14 +95,12 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// TODO: Change to have enter handle connecting to DB
 		case "enter":
 			item, ok := m.list.SelectedItem().(DBConnItems)
-			if ok {
-				if item.isButton {
-					// Notify SidebarPane model that the Add Connection button was clicked
-					fmt.Println("Button Clicked")
-					// return m, func() tea.Msg { return SubmitFormMsg{} }
-				} else if item.URL != "" {
-					m.choice = item
-					fmt.Println(item.Name)
+			if ok && item.URL != "" {
+				err := drivers.ConnectToDatabase(item.URL)
+				if err != nil {
+					fmt.Println("Error connecting to database:", err)
+				} else {
+					fmt.Printf("Connected to %s\n", item.Name)
 				}
 			}
 		}
