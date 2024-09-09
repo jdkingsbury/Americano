@@ -40,7 +40,7 @@ func NewDBFormModel() *DBFormModel {
 	for i := range m.inputs {
 		ti = textinput.New()
 		ti.CharLimit = 156
-		ti.Width = 20
+		ti.Width = 30
 
 		switch i {
 		case 0:

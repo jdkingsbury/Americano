@@ -43,13 +43,13 @@ func NewEditorPane(width, height int) *EditorPaneModel {
 // Code for changing from active to inactive window
 func (m *EditorPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
-		Width(m.width - 40).
+		Width(m.width - 42).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(iris))
 
 	m.activeStyles = lipgloss.NewStyle().
-		Width(m.width - 40).
+		Width(m.width - 42).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(rose))
@@ -106,7 +106,7 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // Helper function to resize the text area
 func (m *EditorPaneModel) resizeTextArea() {
-	m.textarea.SetWidth(m.width - 40)
+	m.textarea.SetWidth(m.width - 42)
 	m.textarea.SetHeight(m.height - 17)
 }
 
