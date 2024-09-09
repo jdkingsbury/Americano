@@ -55,6 +55,7 @@ type DBConnModel struct {
 	list       list.Model
 	choice     DBConnItems
 	focusIndex int
+	database   drivers.Database
 }
 
 func NewDBConnModel(width int) *DBConnModel {
@@ -92,14 +93,17 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		// TODO: Change to have enter handle connecting to DB
 		case "enter":
+			// Handle database connection
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok && item.URL != "" {
-				err := drivers.ConnectToDatabase(item.URL)
+				// Connect to the selected database
+				db, err := drivers.ConnectToDatabase(item.URL)
 				if err != nil {
 					fmt.Println("Error connecting to database:", err)
 				} else {
+					// Store the connected database instance
+					m.database = db
 					fmt.Printf("Connected to %s\n", item.Name)
 				}
 			}
