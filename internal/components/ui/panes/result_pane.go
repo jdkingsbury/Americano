@@ -1,10 +1,14 @@
 package panes
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// NOTE: May need to change how we update the width and height of the table
 
 type ResultPaneModel struct {
 	styles       lipgloss.Style
@@ -19,15 +23,27 @@ type ResultPaneModel struct {
 // Initialize Result Pane
 func NewResultPaneModel(width, height int) *ResultPaneModel {
 	columns := []table.Column{}
-
 	rows := []table.Row{}
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(height/3),
+		table.WithHeight(10),
 	)
+
+	// Apply table styles
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color(iris)).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color(rose)).
+		Background(lipgloss.Color(highlightLow)).
+		Bold(false)
+	t.SetStyles(s)
 
 	pane := &ResultPaneModel{
 		width:  width,
@@ -41,11 +57,39 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 	return pane
 }
 
+// NOTE: Function is for testing the table
+func (m *ResultPaneModel) TestResultPaneTable() {
+	columns := []string{"ID", "Name", "Age", "Occupation", "Country"}
+
+	rows := [][]string{
+		{"1", "Alice", "29", "Engineer", "USA"},
+		{"2", "Bob", "34", "Designer", "UK"},
+		{"3", "Charlie", "22", "Student", "Canada"},
+		{"4", "David", "40", "Manager", "Australia"},
+		{"5", "Eve", "35", "Scientist", "Germany"},
+	}
+	m.UpdateTable(columns, rows)
+}
+
 func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
+	// Calculate the available width for the table
+	availableWidth := m.width - 16
+	if availableWidth < 0 {
+		availableWidth = 0
+	}
+
+	// Calculate column width dynamically
+	columnWidth := availableWidth / len(columns)
+	if columnWidth < 1 {
+		columnWidth = 1
+	}
+
+	fmt.Printf("Available width: %d, Column width: %d", availableWidth, columnWidth)
+
 	// Create table columns from the column names
 	tableColumns := []table.Column{}
 	for _, col := range columns {
-		tableColumns = append(tableColumns, table.Column{Title: col, Width: 15})
+		tableColumns = append(tableColumns, table.Column{Title: col, Width: columnWidth})
 	}
 
 	// Convert row data to the format expected by the table component
@@ -88,7 +132,17 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.updateStyles()
-		m.table.SetHeight(m.height / 3)
+		m.table.SetHeight((m.height / 3) - 3)
+
+		// Recalculate column widths
+		availableWidth := m.width - 16 // Account for borders and padding
+		columns := m.table.Columns()   // Get the existing columns
+		columnWidth := availableWidth / len(columns)
+
+		for i := range columns {
+			columns[i].Width = columnWidth
+		}
+		m.table.SetColumns(columns)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -98,6 +152,8 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.table.Focus()
 			}
+		case "enter":
+			m.TestResultPaneTable()
 		case "q":
 			return m, tea.Quit
 		}

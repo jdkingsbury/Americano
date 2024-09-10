@@ -16,7 +16,7 @@ const listHeight = 14
 var (
 	listTitleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
 	listItemStyle         = lipgloss.NewStyle().Padding(0, 1)
-	listSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose))
+	listSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose)).Background(lipgloss.Color(highlightLow))
 	listPaginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 )
 
