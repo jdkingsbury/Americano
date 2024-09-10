@@ -72,6 +72,11 @@ func (m *ResultPaneModel) TestResultPaneTable() {
 }
 
 func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
+	if len(columns) == 0 {
+		fmt.Println("No columns to display")
+		return
+	}
+
 	// Calculate the available width for the table
 	availableWidth := m.width - 16
 	if availableWidth < 0 {
