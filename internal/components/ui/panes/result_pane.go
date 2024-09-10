@@ -18,10 +18,7 @@ type ResultPaneModel struct {
 
 // Initialize Result Pane
 func NewResultPaneModel(width, height int) *ResultPaneModel {
-	columns := []table.Column{
-		{Title: "Column1", Width: 10},
-		{Title: "Column2", Width: 10},
-	}
+	columns := []table.Column{}
 
 	rows := []table.Row{}
 
@@ -51,13 +48,13 @@ func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 		tableColumns = append(tableColumns, table.Column{Title: col, Width: 15})
 	}
 
-  // Convert row data to the format expected by the table component
+	// Convert row data to the format expected by the table component
 	tableRows := []table.Row{}
 	for _, row := range rowData {
 		tableRows = append(tableRows, table.Row(row))
 	}
 
-  // Update the table model with the new columns and rows
+	// Update the table model with the new columns and rows
 	m.table.SetColumns(tableColumns)
 	m.table.SetRows(tableRows)
 }
