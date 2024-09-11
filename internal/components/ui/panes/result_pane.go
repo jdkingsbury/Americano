@@ -18,6 +18,7 @@ type ResultPaneModel struct {
 	err          error
 	isActive     bool
 	table        table.Model
+	notification string
 }
 
 // Initialize Result Pane
@@ -89,7 +90,7 @@ func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 		columnWidth = 1
 	}
 
-	fmt.Printf("Available width: %d, Column width: %d", availableWidth, columnWidth)
+	// fmt.Printf("Available width: %d, Column width: %d", availableWidth, columnWidth)
 
 	// Create table columns from the column names
 	tableColumns := []table.Column{}
@@ -176,6 +177,10 @@ func (m *ResultPaneModel) View() string {
 	} else {
 		paneStyle = m.styles
 	}
+
+  // if m.notification != "" {
+  //   resultPane += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Render(m.notification)
+  // }
 
 	resultPane := paneStyle.Render(m.table.View())
 

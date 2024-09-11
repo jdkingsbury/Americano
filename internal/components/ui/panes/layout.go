@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jdkingsbury/americano/internal/components/drivers"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
 type pane int

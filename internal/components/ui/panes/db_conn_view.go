@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jdkingsbury/americano/internal/components/drivers"
+	"github.com/jdkingsbury/americano/internal/models"
 )
 
 const listHeight = 14
@@ -59,7 +59,7 @@ type DBConnModel struct {
 	list       list.Model
 	choice     DBConnItems
 	focusIndex int
-	database   drivers.Database
+	database   models.Database
 }
 
 func NewDBConnModel(width int) *DBConnModel {

@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+  "github.com/jdkingsbury/americano/internal/models"
 )
 
-type Database interface {
-	Connect(url string) error
-	TestConnection(url string) error
-	CloseConnection() error
-	ExecuteQuery(query string) (columns []string, rows [][]string, err error)
-}
 
-func ConnectToDatabase(dbURL string) (Database, error) {
+func ConnectToDatabase(dbURL string) (models.Database, error) {
 	parsedURL, err := url.Parse(dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse URL: %w", err)
 	}
 
-	var db Database
+	var db models.Database
 
 	// Determines the database based on URL scheme
 	switch strings.ToLower(parsedURL.Scheme) {

@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jdkingsbury/americano/internal/components/drivers"
+	"github.com/jdkingsbury/americano/internal/models"
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
@@ -23,12 +23,12 @@ type EditorPaneModel struct {
 	err          error
 	focused      bool
 	isActive     bool
-	db           drivers.Database
+	db           models.Database
 	resultPane   *ResultPaneModel
 }
 
 // Initialize Editor Pane
-func NewEditorPane(width, height int, db drivers.Database, resultPane *ResultPaneModel) *EditorPaneModel {
+func NewEditorPane(width, height int, db models.Database, resultPane *ResultPaneModel) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
 	ti.CharLimit = 1000
