@@ -58,6 +58,54 @@ func (db *SQLite) Connect(url string) error {
 	return nil
 }
 
+func (db *SQLite) ExecuteQuery(query string) (columns []string, rows [][]string, err error) {
+	// Execute the query
+	rowsResult, err := db.Connection.Query(query)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rowsResult.Close()
+
+	// Get column names
+	columns, err = rowsResult.Columns()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Process rows
+	for rowsResult.Next() {
+		// Create a slice to hold row values
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range columns {
+			valuePtrs[i] = &values[i]
+		}
+
+		// Scan row values into pointers
+		if err := rowsResult.Scan(valuePtrs...); err != nil {
+			return nil, nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Convert values to strings
+		row := make([]string, len(columns))
+		for i, value := range values {
+			if value == nil {
+				row[i] = "NULL"
+			} else {
+				row[i] = fmt.Sprintf("%v", value)
+			}
+		}
+		rows = append(rows, row)
+	}
+
+	// Check for errors from iterating over rows
+	if err := rowsResult.Err(); err != nil {
+		return nil, nil, fmt.Errorf("error iterating over rows: %w", err)
+	}
+
+	return columns, rows, nil
+}
+
 // Close connection to sqlite database
 func (db *SQLite) CloseConnection() error {
 	if db.Connection != nil {

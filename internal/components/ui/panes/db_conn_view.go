@@ -51,6 +51,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, fn(str))
 }
 
+type SetupEditorPaneMsg struct {
+	dbURL string
+}
+
 type DBConnModel struct {
 	list       list.Model
 	choice     DBConnItems
@@ -97,15 +101,19 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle database connection
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok && item.URL != "" {
-				// Connect to the selected database
-				db, err := drivers.ConnectToDatabase(item.URL)
-				if err != nil {
-					fmt.Println("Error connecting to database:", err)
-				} else {
-					// Store the connected database instance
-					m.database = db
-					fmt.Printf("Connected to %s\n", item.Name)
+				return m, func() tea.Msg {
+					return SetupEditorPaneMsg{dbURL: item.URL}
 				}
+
+				// Connect to the selected database
+				// db, err := drivers.ConnectToDatabase(item.URL)
+				// if err != nil {
+				// 	fmt.Println("Error connecting to database:", err)
+				// } else {
+				// 	// Store the connected database instance
+				// 	m.database = db
+				// 	fmt.Printf("Connected to %s\n", item.Name)
+				// }
 			}
 		}
 	}

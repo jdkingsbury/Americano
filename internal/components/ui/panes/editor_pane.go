@@ -1,9 +1,12 @@
 package panes
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/components/drivers"
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
@@ -18,21 +21,25 @@ type EditorPaneModel struct {
 	err          error
 	focused      bool
 	isActive     bool
+	db           drivers.Database
+	resultPane   *ResultPaneModel
 }
 
 // Initialize Editor Pane
-func NewEditorPane(width, height int) *EditorPaneModel {
+func NewEditorPane(width, height int, db drivers.Database, resultPane *ResultPaneModel) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
 	ti.CharLimit = 1000
 	ti.ShowLineNumbers = false
 
 	pane := &EditorPaneModel{
-		width:    width,
-		height:   height,
-		textarea: ti,
-		err:      nil,
-		focused:  true,
+		width:      width,
+		height:     height,
+		textarea:   ti,
+		err:        nil,
+		focused:    true,
+		db:         db,
+		resultPane: resultPane,
 	}
 
 	pane.updateStyles()
@@ -55,6 +62,30 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+func (m *EditorPaneModel) ExecuteQuery() error {
+	if m.db == nil {
+		return fmt.Errorf("no database connection")
+	}
+
+	query := m.textarea.Value()
+	if query == "" {
+		return fmt.Errorf("no SQL query entered")
+	}
+
+	// Execute Query using db connection
+	columns, rows, err := m.db.ExecuteQuery(query)
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	// Update Result Pane
+	if m.resultPane != nil {
+		m.resultPane.UpdateTable(columns, rows)
+	}
+
+	return nil
+}
+
 // Code for functionality on start
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
@@ -72,8 +103,16 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resizeTextArea()
 
 	case tea.KeyMsg:
-		switch msg.Type {
+		switch msg.String() {
+		case "enter":
+			err := m.ExecuteQuery()
+			if err != nil {
+				m.err = err
+			}
+      m.textarea.Reset()
+		}
 
+		switch msg.Type {
 		// Keymap to switch stop editing
 		case tea.KeyEsc:
 			if m.textarea.Focused() {
