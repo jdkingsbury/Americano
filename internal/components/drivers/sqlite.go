@@ -58,6 +58,7 @@ func (db *SQLite) Connect(url string) error {
 	return nil
 }
 
+// Execute db query
 func (db *SQLite) ExecuteQuery(query string) (columns []string, rows [][]string, err error) {
 	// Execute the query
 	rowsResult, err := db.Connection.Query(query)

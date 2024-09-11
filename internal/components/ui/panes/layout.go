@@ -105,6 +105,9 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentPane = EditorPane
 		}
 
+	case QueryResultsExecuted:
+		m.currentPane = ResultPane
+
 	// Fetch Window Size
 	case tea.WindowSizeMsg:
 		m.width = msg.Width

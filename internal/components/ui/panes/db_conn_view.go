@@ -104,16 +104,6 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, func() tea.Msg {
 					return SetupEditorPaneMsg{dbURL: item.URL}
 				}
-
-				// Connect to the selected database
-				// db, err := drivers.ConnectToDatabase(item.URL)
-				// if err != nil {
-				// 	fmt.Println("Error connecting to database:", err)
-				// } else {
-				// 	// Store the connected database instance
-				// 	m.database = db
-				// 	fmt.Printf("Connected to %s\n", item.Name)
-				// }
 			}
 		}
 	}

@@ -12,6 +12,8 @@ import (
 
 /* Handles The SQL Editor Pane*/
 
+type QueryResultsExecuted struct{}
+
 type EditorPaneModel struct {
 	styles       lipgloss.Style
 	activeStyles lipgloss.Style
@@ -109,7 +111,10 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err != nil {
 				m.err = err
 			}
-      m.textarea.Reset()
+			m.textarea.Reset()
+			return m, func() tea.Msg {
+				return QueryResultsExecuted{}
+			}
 		}
 
 		switch msg.Type {
