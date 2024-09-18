@@ -2,9 +2,9 @@
 
 Americano is a Terminal UI Application designed for interacting with databases. The application aims to provide an intuitive and powerful interface for executing SQL commands, managing database connections, and viewing and saving results, all within a terminal environment.
 
-🚧 Status: Under Development 🚧
+Note: Americano is currently in active development.
 
-Note: Americano is currently in active development and is not yet ready for production use. Stay tuned for updates as the project progresses.
+Currently capable to connect to a sqlite database, execute simple database commands, and display query results and connection notifications and errors.
 
 Features (Planned)
 
