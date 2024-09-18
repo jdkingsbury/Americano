@@ -4,10 +4,13 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/drivers"
 	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 /* Handles The SQL Editor Pane*/
+
+// TODO: Work on displaying query results
 
 type EditorPaneModel struct {
 	styles       lipgloss.Style
@@ -18,21 +21,25 @@ type EditorPaneModel struct {
 	err          error
 	focused      bool
 	isActive     bool
+	db           drivers.Database
+	resultPane   *ResultPaneModel
 }
 
 // Initialize Editor Pane
-func NewEditorPane(width, height int) *EditorPaneModel {
+func NewEditorPane(width, height int, db drivers.Database, resultPane *ResultPaneModel) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
 	ti.CharLimit = 1000
 	ti.ShowLineNumbers = false
 
 	pane := &EditorPaneModel{
-		width:    width,
-		height:   height,
-		textarea: ti,
-		err:      nil,
-		focused:  true,
+		width:      width,
+		height:     height,
+		textarea:   ti,
+		err:        nil,
+		focused:    true,
+		db:         db,
+		resultPane: resultPane,
 	}
 
 	pane.updateStyles()
@@ -72,8 +79,15 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resizeTextArea()
 
 	case tea.KeyMsg:
-		switch msg.Type {
+		switch msg.String() {
+		case "enter":
+			query := m.textarea.Value()
+			return m, func() tea.Msg {
+				return m.db.ExecuteQuery(query)
+			}
+		}
 
+		switch msg.Type {
 		// Keymap to switch stop editing
 		case tea.KeyEsc:
 			if m.textarea.Focused() {

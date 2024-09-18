@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jdkingsbury/americano/internal/components/drivers"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
 const listHeight = 14
@@ -16,7 +16,7 @@ const listHeight = 14
 var (
 	listTitleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
 	listItemStyle         = lipgloss.NewStyle().Padding(0, 1)
-	listSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose))
+	listSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose)).Background(lipgloss.Color(highlightLow))
 	listPaginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 )
 
@@ -49,6 +49,11 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	fmt.Fprint(w, fn(str))
+}
+
+type SetupEditorPaneMsg struct {
+	dbURL string
+	DB    *drivers.Database
 }
 
 type DBConnModel struct {
@@ -97,14 +102,8 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle database connection
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok && item.URL != "" {
-				// Connect to the selected database
-				db, err := drivers.ConnectToDatabase(item.URL)
-				if err != nil {
-					fmt.Println("Error connecting to database:", err)
-				} else {
-					// Store the connected database instance
-					m.database = db
-					fmt.Printf("Connected to %s\n", item.Name)
+				return m, func() tea.Msg {
+					return SetupEditorPaneMsg{dbURL: item.URL}
 				}
 			}
 		}

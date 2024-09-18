@@ -3,6 +3,7 @@ package panes
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
 type pane int
@@ -24,8 +25,8 @@ type LayoutModel struct {
 
 func NewLayoutModel() *LayoutModel {
 	sideBarPane := NewSideBarPane(0, 0)
-	editorPane := NewEditorPane(0, 0)
 	resultPane := NewResultPaneModel(0, 0)
+	editorPane := NewEditorPane(0, 0, nil, resultPane)
 	footerPane := NewFooterPane(0)
 
 	layout := &LayoutModel{
@@ -69,6 +70,22 @@ func (m *LayoutModel) updatePaneSizes() {
 	m.footer.updateStyle()
 }
 
+func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane *ResultPaneModel) (*EditorPaneModel, tea.Cmd) {
+	// Connect to database
+	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
+	if err != nil {
+		return nil, func() tea.Msg {
+			return dbConnMsg
+		}
+	}
+
+	// Initialize the editor pane with connected database and resultPane
+	editorPane := NewEditorPane(width, height, dbConnMsg.DB, resultPane)
+	return editorPane, func() tea.Msg {
+		return dbConnMsg
+	}
+}
+
 // Code for functionality on start
 func (m *LayoutModel) Init() tea.Cmd {
 	return nil
@@ -79,6 +96,30 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+
+	case SetupEditorPaneMsg:
+		resultPane := m.panes[ResultPane].(*ResultPaneModel) // Retrieve the resultPane
+		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height, resultPane)
+		if editorPane != nil {
+			m.panes[EditorPane] = editorPane
+			m.currentPane = EditorPane
+		}
+
+		return m, setupCmd
+
+	case drivers.DBConnMsg:
+
+		clearCmd := func() tea.Msg {
+			return ClearNotificationMsg{}
+		}
+
+		// Send connection message to Result Pane
+		resultPane := m.panes[ResultPane].(*ResultPaneModel)
+		resultPane.Update(clearCmd)
+		resultPane.Update(msg)
+
+	case drivers.QueryResultMsg:
+		m.currentPane = ResultPane
 
 	// Fetch Window Size
 	case tea.WindowSizeMsg:
