@@ -12,12 +12,6 @@ import (
 
 // TODO: Work on displaying query results
 
-type QueryResultsExecuted struct {
-	Columns []string
-	Rows    [][]string
-	Error   error
-}
-
 type EditorPaneModel struct {
 	styles       lipgloss.Style
 	activeStyles lipgloss.Style

@@ -115,10 +115,10 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Send connection message to Result Pane
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
-    resultPane.Update(clearCmd)
+		resultPane.Update(clearCmd)
 		resultPane.Update(msg)
 
-	case QueryResultsExecuted:
+	case drivers.QueryResultMsg:
 		m.currentPane = ResultPane
 
 	// Fetch Window Size
