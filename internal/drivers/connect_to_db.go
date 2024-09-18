@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+type QueryResultMsg struct {
+	Columns []string
+	Rows    [][]string
+	Error   error
+}
+
 type DBConnMsg struct {
 	Notification string
 	Error        error
@@ -16,7 +22,7 @@ type Database interface {
 	Connect(url string) error
 	TestConnection(url string) error
 	CloseConnection() error
-	ExecuteQuery(query string) (columns []string, rows [][]string, err error)
+	ExecuteQuery(query string) QueryResultMsg
 }
 
 func ConnectToDatabase(dbURL string) (DBConnMsg, error) {

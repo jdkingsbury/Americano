@@ -137,9 +137,21 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case drivers.DBConnMsg:
+	case drivers.QueryResultMsg:
+		cmds = append(cmds, func() tea.Msg {
+			return ClearNotificationMsg{}
+		})
 
-    // Appends the cmd to clear notification and error before displaying new result
+		if msg.Error != nil {
+			m.err = msg.Error
+			return m, nil
+		}
+
+		m.UpdateTable(msg.Columns, msg.Rows)
+
+		// For Errors and Notifications
+	case drivers.DBConnMsg:
+		// Appends the cmd to clear notification and error before displaying new result
 		cmds = append(cmds, func() tea.Msg {
 			return ClearNotificationMsg{}
 		})
@@ -152,6 +164,7 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 
+		// For Clearing the Result Pane
 	case ClearNotificationMsg:
 		m.notification = ""
 		m.err = nil

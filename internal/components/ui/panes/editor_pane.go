@@ -1,8 +1,6 @@
 package panes
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -12,7 +10,13 @@ import (
 
 /* Handles The SQL Editor Pane*/
 
-type QueryResultsExecuted struct{}
+// TODO: Work on displaying query results
+
+type QueryResultsExecuted struct {
+	Columns []string
+	Rows    [][]string
+	Error   error
+}
 
 type EditorPaneModel struct {
 	styles       lipgloss.Style
@@ -64,30 +68,6 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
-func (m *EditorPaneModel) ExecuteQuery() error {
-	if m.db == nil {
-		return fmt.Errorf("no database connection")
-	}
-
-	query := m.textarea.Value()
-	if query == "" {
-		return fmt.Errorf("no SQL query entered")
-	}
-
-	// Execute Query using db connection
-	columns, rows, err := m.db.ExecuteQuery(query)
-	if err != nil {
-		return fmt.Errorf("failed to execute query: %w", err)
-	}
-
-	// Update Result Pane
-	if m.resultPane != nil {
-		m.resultPane.UpdateTable(columns, rows)
-	}
-
-	return nil
-}
-
 // Code for functionality on start
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
@@ -107,13 +87,9 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			err := m.ExecuteQuery()
-			if err != nil {
-				m.err = err
-			}
-			m.textarea.Reset()
+			query := m.textarea.Value()
 			return m, func() tea.Msg {
-				return QueryResultsExecuted{}
+				return m.db.ExecuteQuery(query)
 			}
 		}
 

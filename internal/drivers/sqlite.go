@@ -59,18 +59,21 @@ func (db *SQLite) Connect(url string) error {
 }
 
 // Execute db query
-func (db *SQLite) ExecuteQuery(query string) (columns []string, rows [][]string, err error) {
+func (db *SQLite) ExecuteQuery(query string) QueryResultMsg {
+	var columns []string
+	var rows [][]string
+
 	// Execute the query
 	rowsResult, err := db.Connection.Query(query)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to execute query: %w", err)
+		return QueryResultMsg{Error: fmt.Errorf("failed to execute query: %w", err)}
 	}
 	defer rowsResult.Close()
 
 	// Get column names
 	columns, err = rowsResult.Columns()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get columns: %w", err)
+		return QueryResultMsg{Error: fmt.Errorf("failed to get columns: %w", err)}
 	}
 
 	// Process rows
@@ -84,7 +87,7 @@ func (db *SQLite) ExecuteQuery(query string) (columns []string, rows [][]string,
 
 		// Scan row values into pointers
 		if err := rowsResult.Scan(valuePtrs...); err != nil {
-			return nil, nil, fmt.Errorf("failed to scan row: %w", err)
+			return QueryResultMsg{Error: fmt.Errorf("failed to scan row: %w", err)}
 		}
 
 		// Convert values to strings
@@ -101,10 +104,10 @@ func (db *SQLite) ExecuteQuery(query string) (columns []string, rows [][]string,
 
 	// Check for errors from iterating over rows
 	if err := rowsResult.Err(); err != nil {
-		return nil, nil, fmt.Errorf("error iterating over rows: %w", err)
+		return QueryResultMsg{Error: fmt.Errorf("error iterating over rows: %w", err)}
 	}
 
-	return columns, rows, nil
+	return QueryResultMsg{Columns: columns, Rows: rows, Error: nil}
 }
 
 // Close connection to sqlite database
