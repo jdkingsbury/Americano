@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jdkingsbury/americano/internal/models"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
 const listHeight = 14
@@ -53,13 +53,14 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 type SetupEditorPaneMsg struct {
 	dbURL string
+	DB    *drivers.Database
 }
 
 type DBConnModel struct {
 	list       list.Model
 	choice     DBConnItems
 	focusIndex int
-	database   models.Database
+	database   drivers.Database
 }
 
 func NewDBConnModel(width int) *DBConnModel {

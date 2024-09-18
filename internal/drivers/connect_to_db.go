@@ -4,37 +4,48 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-  "github.com/jdkingsbury/americano/internal/models"
 )
 
+type DBConnMsg struct {
+	Notification string
+	Error        error
+	DB           Database
+}
 
-func ConnectToDatabase(dbURL string) (models.Database, error) {
+type Database interface {
+	Connect(url string) error
+	TestConnection(url string) error
+	CloseConnection() error
+	ExecuteQuery(query string) (columns []string, rows [][]string, err error)
+}
+
+func ConnectToDatabase(dbURL string) (DBConnMsg, error) {
 	parsedURL, err := url.Parse(dbURL)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse URL: %w", err)
+		return DBConnMsg{Error: fmt.Errorf("Failed to parse URL: %w", err)}, err
 	}
 
-	var db models.Database
+	var db Database
+	var notification string
 
 	// Determines the database based on URL scheme
 	switch strings.ToLower(parsedURL.Scheme) {
 	case "postgres", "postgresql":
-		fmt.Println("Connecting to PostgreSQL database...")
+		notification = fmt.Sprintf("Connecting to PostgreSQL database...")
 	case "mysql":
-		fmt.Println("Connecting to MySQL database...")
+		notification = fmt.Sprintf("Connecting to MySQL database...")
 	case "sqlite":
-		fmt.Println("Connecting to Sqlite database...")
+		notification = fmt.Sprintf("Connecting to Sqlite database...")
 		db = &SQLite{}
 	default:
-		return nil, fmt.Errorf("Unsupported database scheme: %s", parsedURL.Scheme)
+		return DBConnMsg{Error: fmt.Errorf("Unsupported database scheme: %s", parsedURL.Scheme)}, nil
 	}
 
 	// Calls connect to establish a connection
 	err = db.Connect(dbURL)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to the database: %w", err)
+		return DBConnMsg{Error: fmt.Errorf("Failed to connect to the database: %w", err)}, err
 	}
 
-	return db, nil
+	return DBConnMsg{Notification: notification, DB: db}, nil
 }

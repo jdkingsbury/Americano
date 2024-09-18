@@ -6,9 +6,11 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
 // NOTE: May need to change how we update the width and height of the table
+type ClearNotificationMsg struct{}
 
 type ResultPaneModel struct {
 	styles       lipgloss.Style
@@ -131,9 +133,29 @@ func (m *ResultPaneModel) Init() tea.Cmd {
 
 // Code for updating the state
 func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+
+	case drivers.DBConnMsg:
+
+    // Appends the cmd to clear notification and error before displaying new result
+		cmds = append(cmds, func() tea.Msg {
+			return ClearNotificationMsg{}
+		})
+
+		if msg.Error != nil {
+			m.err = msg.Error
+			m.notification = ""
+		} else {
+			m.notification = msg.Notification
+			m.err = nil
+		}
+
+	case ClearNotificationMsg:
+		m.notification = ""
+		m.err = nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -164,9 +186,11 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
-	m.table, cmd = m.table.Update(msg)
+	var tableCmd tea.Cmd
+	m.table, tableCmd = m.table.Update(msg)
+	cmds = append(cmds, tableCmd)
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 // Result Pane View
@@ -178,17 +202,20 @@ func (m *ResultPaneModel) View() string {
 		paneStyle = m.styles
 	}
 
-  // if m.notification != "" {
-  //   resultPane += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color(text)).Render(m.notification)
-  // }
-
-	resultPane := paneStyle.Render(m.table.View())
-
 	if m.err != nil {
-		resultPane += lipgloss.NewStyle().
-			Foreground(lipgloss.Color("red")).
-			Render(m.err.Error())
+		return paneStyle.Render(lipgloss.NewStyle().
+			Foreground(lipgloss.Color(rose)).
+			Render(m.err.Error()),
+		)
 	}
 
-	return resultPane
+	if m.notification != "" {
+		return paneStyle.Render(
+			lipgloss.NewStyle().
+				Foreground(lipgloss.Color(text)).
+				Render(m.notification),
+		)
+	}
+
+	return paneStyle.Render(m.table.View())
 }
