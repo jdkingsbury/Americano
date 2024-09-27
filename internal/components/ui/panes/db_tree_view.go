@@ -5,12 +5,19 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jdkingsbury/americano/internal/drivers"
 )
+
+type DBTreeMsg struct {
+  Notification string
+  Error error
+}
 
 type ListItem struct {
 	Title    string
 	SubItems []ListItem
 	IsOpen   bool
+	Query    string
 }
 
 // FlatListItem is used for the rendering the list items
@@ -27,8 +34,25 @@ type DBTreeModel struct {
 	cursor       int
 }
 
-func NewDBTreeModel() *DBTreeModel {
-	originalList := sampleList()
+func NewDBTreeModel(db drivers.Database) *DBTreeModel {
+	var originalList []ListItem
+
+	if db == nil {
+		originalList = []ListItem{
+			{Title: "No connection"},
+		}
+	} else {
+		tables, err := db.GetTables()
+		if err != nil {
+			originalList = []ListItem{
+				{Title: "No connection"},
+			}
+      // return DBTreeMsg{Error: fmt.Errorf("Error retrieving tables: %s", err.Error())
+		} else {
+			originalList = buildTableList(tables)
+		}
+	}
+
 	flatList := flattenList(originalList, 0)
 
 	return &DBTreeModel{
@@ -36,6 +60,15 @@ func NewDBTreeModel() *DBTreeModel {
 		flatList:     flatList,
 		cursor:       0,
 	}
+}
+
+func buildTableList(tables []string) []ListItem {
+	var tableItems []ListItem
+	for _, table := range tables {
+		tableItems = append(tableItems, ListItem{Title: table})
+	}
+
+	return tableItems
 }
 
 func sampleList() []ListItem {
@@ -124,8 +157,8 @@ func (m *DBTreeModel) updateOriginalListState(items []ListItem, title string, cu
 func renderFlatList(flatList []FlatListItem, cursor int) string {
 	var b strings.Builder
 
-	title := listTitleStyle.Render("Database Tree")
-	b.WriteString(fmt.Sprintf("%s\n\n", title))
+	title := listTitleStyle.Render("Database Connection Tree")
+	b.WriteString(fmt.Sprintf("%s\n", title))
 
 	for i, item := range flatList {
 		indent := strings.Repeat("  ", item.Level)

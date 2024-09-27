@@ -23,6 +23,7 @@ type Database interface {
 	TestConnection(url string) error
 	CloseConnection() error
 	ExecuteQuery(query string) QueryResultMsg
+	GetTables() ([]string, error)
 }
 
 func ConnectToDatabase(dbURL string) (DBConnMsg, error) {

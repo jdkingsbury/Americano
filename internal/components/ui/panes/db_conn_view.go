@@ -56,6 +56,11 @@ type SetupEditorPaneMsg struct {
 	DB    *drivers.Database
 }
 
+type SetupDBTreeMsg struct {
+	dbURL string
+	DB    *drivers.Database
+}
+
 type DBConnModel struct {
 	list       list.Model
 	choice     DBConnItems
@@ -102,9 +107,15 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle database connection
 			item, ok := m.list.SelectedItem().(DBConnItems)
 			if ok && item.URL != "" {
-				return m, func() tea.Msg {
+				setupDBTreeCmd := func() tea.Msg {
+					return SetupDBTreeMsg{dbURL: item.URL}
+				}
+
+				setupEditorCmd := func() tea.Msg {
 					return SetupEditorPaneMsg{dbURL: item.URL}
 				}
+
+				return m, tea.Batch(setupDBTreeCmd, setupEditorCmd)
 			}
 		}
 	}
