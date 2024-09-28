@@ -86,7 +86,8 @@ func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane 
 	}
 }
 
-func setupDBTreeForDBConnection(dbURL string, resultPane *ResultPaneModel) (*DBTreeModel, tea.Cmd) {
+// TODO: Add result pane 
+func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
 	// Connect to database
 	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
 	if err != nil {
@@ -113,11 +114,11 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case SetupDBTreeMsg:
-		resultPane := m.panes[ResultPane].(*ResultPaneModel)
-		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL, resultPane)
-		sideBarPane := NewSideBarPane(m.width, m.height)
+		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL)
+
 		if dbTree != nil {
-			m.panes[SideBarPane] = sideBarPane
+      sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+      sideBarPane.dbTreeModel = dbTree
 			sideBarPane.currentView = DBTreeView
 		}
 

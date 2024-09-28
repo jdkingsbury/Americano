@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type SQLite struct {
-	Connection *sql.DB
+	Connection    *sql.DB
+	connectionUrl string
 }
 
 // Parses out sqlite:/// from the url
@@ -48,6 +50,7 @@ func (db *SQLite) Connect(url string) error {
 
 	// Assign the connection to the SQLite struct
 	db.Connection = conn
+	db.connectionUrl = normalizedURL
 
 	// Test Connection
 	if err := db.Connection.Ping(); err != nil {
@@ -117,6 +120,16 @@ func (db *SQLite) CloseConnection() error {
 	}
 
 	return nil
+}
+
+func (db *SQLite) GetDatabaseName() (string, error) {
+	if db.connectionUrl == "" {
+		return "", errors.New("no database connection")
+	}
+
+	dbName := filepath.Base(db.connectionUrl)
+
+	return dbName, nil
 }
 
 // Fetch table names from SQLite database

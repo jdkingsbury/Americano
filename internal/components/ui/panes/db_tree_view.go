@@ -9,8 +9,8 @@ import (
 )
 
 type DBTreeMsg struct {
-  Notification string
-  Error error
+	Notification string
+	Error        error
 }
 
 type ListItem struct {
@@ -42,14 +42,24 @@ func NewDBTreeModel(db drivers.Database) *DBTreeModel {
 			{Title: "No connection"},
 		}
 	} else {
+		dbName, err := db.GetDatabaseName()
+		if err != nil {
+			dbName = "Unknown db"
+		}
+
 		tables, err := db.GetTables()
 		if err != nil {
 			originalList = []ListItem{
 				{Title: "No connection"},
 			}
-      // return DBTreeMsg{Error: fmt.Errorf("Error retrieving tables: %s", err.Error())
 		} else {
-			originalList = buildTableList(tables)
+			originalList = []ListItem{
+				{
+					Title:    dbName,
+					SubItems: buildTableList(tables),
+					IsOpen:   true,
+				},
+			}
 		}
 	}
 
@@ -65,7 +75,11 @@ func NewDBTreeModel(db drivers.Database) *DBTreeModel {
 func buildTableList(tables []string) []ListItem {
 	var tableItems []ListItem
 	for _, table := range tables {
-		tableItems = append(tableItems, ListItem{Title: table})
+		tableItems = append(tableItems, ListItem{
+			Title:    table,
+			SubItems: nil,
+			IsOpen:   false,
+		})
 	}
 
 	return tableItems
