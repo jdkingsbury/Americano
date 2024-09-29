@@ -86,6 +86,22 @@ func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane 
 	}
 }
 
+// TODO: Add result pane 
+func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
+	// Connect to database
+	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
+	if err != nil {
+		return nil, func() tea.Msg {
+			return dbConnMsg
+		}
+	}
+
+	dbTree := NewDBTreeModel(dbConnMsg.DB)
+	return dbTree, func() tea.Msg {
+		return dbConnMsg
+	}
+}
+
 // Code for functionality on start
 func (m *LayoutModel) Init() tea.Cmd {
 	return nil
@@ -97,12 +113,28 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
+  case InsertQueryMsg:
+    // Pass the query to editor pane 
+    editorPane := m.panes[EditorPane].(*EditorPaneModel)
+    m.panes[EditorPane], cmd = editorPane.Update(msg)
+    return m, cmd
+
+	case SetupDBTreeMsg:
+		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL)
+
+		if dbTree != nil {
+      sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+      sideBarPane.dbTreeModel = dbTree
+			sideBarPane.currentView = DBTreeView
+		}
+
+		return m, setupCmd
+
 	case SetupEditorPaneMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel) // Retrieve the resultPane
 		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height, resultPane)
 		if editorPane != nil {
 			m.panes[EditorPane] = editorPane
-			m.currentPane = EditorPane
 		}
 
 		return m, setupCmd
@@ -147,27 +179,16 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		// Keymap For Switching To Next Pane. Also Changes The Active Pane
 		case "tab":
-			// Deactivate current pane
 			m.setActivePane(false)
-
-			// Switch to the next pane
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
-
-			// Activate the new current pane
 			m.setActivePane(true)
 
 			// Keymap For Switching To Previous Pane. Also Changes The Active Pane
 		case "shift+tab":
-			// Deactivate current pane
 			m.setActivePane(false)
-
-			// Switch to the previous pane
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
-
-			// Activate the new current pane
 			m.setActivePane(true)
 
-			// Keymap for Quitting the Application. Used for testing.
 		case "Q":
 			return m, tea.Quit
 		}

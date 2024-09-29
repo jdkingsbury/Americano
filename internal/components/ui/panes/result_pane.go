@@ -80,19 +80,24 @@ func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 		return
 	}
 
+	// Constants for border, padding, and column spacing
+	borderWidth := 6
+	padding := 6
+	columnSpacing := 1
+
 	// Calculate the available width for the table
-	availableWidth := m.width - 16
+	availableWidth := m.width - borderWidth - padding - (len(columns)-1)*columnSpacing
 	if availableWidth < 0 {
 		availableWidth = 0
 	}
 
+	minColumnWidth := 10
+
 	// Calculate column width dynamically
 	columnWidth := availableWidth / len(columns)
-	if columnWidth < 1 {
-		columnWidth = 1
+	if columnWidth < minColumnWidth {
+		columnWidth = minColumnWidth
 	}
-
-	// fmt.Printf("Available width: %d, Column width: %d", availableWidth, columnWidth)
 
 	// Create table columns from the column names
 	tableColumns := []table.Column{}
@@ -230,5 +235,17 @@ func (m *ResultPaneModel) View() string {
 		)
 	}
 
-	return paneStyle.Render(m.table.View())
+	tableView := m.table.View()
+
+	// totalPadding := (m.width - lipgloss.Width(tableView)) / 2
+	// if totalPadding < 0 {
+	//   totalPadding = 0
+	// }
+
+	centeredTable := lipgloss.NewStyle().
+		Padding(0, 2).
+		// PaddingLeft(totalPadding).
+		Render(tableView)
+
+	return paneStyle.Render(centeredTable)
 }

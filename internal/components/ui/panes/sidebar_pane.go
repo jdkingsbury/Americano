@@ -28,7 +28,7 @@ type SideBarPaneModel struct {
 
 func NewSideBarPane(width, height int) *SideBarPaneModel {
 	dbConnModel := NewDBConnModel(width)
-	dbTreeModel := NewDBTreeModel()
+	dbTreeModel := NewDBTreeModel(nil)
 	dbFormModel := NewDBFormModel()
 
 	pane := &SideBarPaneModel{
