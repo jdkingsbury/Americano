@@ -113,6 +113,12 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
+  case InsertQueryMsg:
+    // Pass the query to editor pane 
+    editorPane := m.panes[EditorPane].(*EditorPaneModel)
+    m.panes[EditorPane], cmd = editorPane.Update(msg)
+    return m, cmd
+
 	case SetupDBTreeMsg:
 		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL)
 

@@ -10,7 +10,9 @@ import (
 
 /* Handles The SQL Editor Pane*/
 
-// TODO: Work on displaying query results
+type InsertQueryMsg struct {
+	Query string
+}
 
 type EditorPaneModel struct {
 	styles       lipgloss.Style
@@ -77,6 +79,11 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.resizeTextArea()
+
+	case InsertQueryMsg:
+		m.textarea.Reset()
+		m.textarea.SetValue(msg.Query)
+		return m, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {

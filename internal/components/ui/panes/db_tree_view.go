@@ -57,7 +57,7 @@ func NewDBTreeModel(db drivers.Database) *DBTreeModel {
 				{
 					Title:    dbName,
 					SubItems: buildTableList(tables),
-					IsOpen:   true,
+					IsOpen:   false,
 				},
 			}
 		}
@@ -77,7 +77,7 @@ func buildTableList(tables []string) []ListItem {
 	for _, table := range tables {
 		tableItems = append(tableItems, ListItem{
 			Title:    table,
-			SubItems: nil,
+			SubItems: buildTableSubItems(table),
 			IsOpen:   false,
 		})
 	}
@@ -85,18 +85,12 @@ func buildTableList(tables []string) []ListItem {
 	return tableItems
 }
 
-func sampleList() []ListItem {
+// Sub items containing queries for tables
+func buildTableSubItems(table string) []ListItem {
 	return []ListItem{
-		{Title: "Item 1", SubItems: []ListItem{
-			{Title: "SubItem 1.1"},
-			{Title: "SubItem 1.2"},
-		}},
-		{Title: "Item 2", SubItems: []ListItem{
-			{Title: "SubItem 2.1", SubItems: []ListItem{
-				{Title: "SubItem 2.1.1"},
-			}},
-		}},
-		{Title: "Item 3"},
+		{Title: "list", Query: fmt.Sprintf("SELECT * FROM %s;", table)},
+		{Title: "column", Query: fmt.Sprintf("PRAGMA table_info(%s);", table)},
+		{Title: "foreign key", Query: fmt.Sprintf("PRAGMA foreign_key_list(%s);", table)},
 	}
 }
 
@@ -119,31 +113,28 @@ func flattenList(items []ListItem, level int) []FlatListItem {
 	return flatList
 }
 
-// Handle key inputs for navigation and toggling items
-func handleInput(msg tea.KeyMsg, m *DBTreeModel) {
-	switch msg.String() {
-
-	case "up", "k":
-		if m.cursor > 0 {
-			m.cursor--
-		}
-
-	case "down", "j":
-		if m.cursor < len(m.flatList)-1 {
-			m.cursor++
-		}
-
-	case "enter", " ":
-		m.toggleItemOpen()
-	}
-}
-
 // Toggles and item's open/collapse state and rebuilds the flat list
 func (m *DBTreeModel) toggleItemOpen() {
 	// Find the item in the original list
 	m.updateOriginalListState(m.originalList, m.flatList[m.cursor].Title, 0, m.flatList[m.cursor].Level)
+
 	// Rebuild the flat list based on the updated original list
 	m.flatList = flattenList(m.originalList, 0)
+}
+
+func getQueryForItem(title string, items []ListItem) string {
+	for _, item := range items {
+		if item.Title == title && item.Query != "" {
+			return item.Query
+		}
+		if len(item.SubItems) > 0 {
+			query := getQueryForItem(title, item.SubItems)
+			if query != "" {
+				return query
+			}
+		}
+	}
+	return ""
 }
 
 // Update the collapsible state and return true or false if found. Returning a bool for when making tests
@@ -189,7 +180,30 @@ func renderFlatList(flatList []FlatListItem, cursor int) string {
 func (m *DBTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		handleInput(msg, m)
+		switch msg.String() {
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+
+		case "down", "j":
+			if m.cursor < len(m.flatList)-1 {
+				m.cursor++
+			}
+
+		case "enter", " ":
+			// Check if the selected item has an associated query
+			query := getQueryForItem(m.flatList[m.cursor].Title, m.originalList)
+			if query != "" {
+				// Send the message with the query for the editor
+				// NOTE: When sending tea msg you need to pass to layout and have layout send to the editor pane
+				return m, func() tea.Msg {
+					return InsertQueryMsg{Query: query}
+				}
+			} else {
+				m.toggleItemOpen()
+			}
+		}
 	}
 	return m, nil
 }
