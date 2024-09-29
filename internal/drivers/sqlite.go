@@ -151,25 +151,3 @@ func (db *SQLite) GetTables() ([]string, error) {
 
 	return tables, nil
 }
-
-// Fetch column names for the specified table.
-// func (db *SQLite) GetColumns(tableName string) ([]string, error) {
-// 	query := fmt.Sprintf("PRAGMA table_info(%s);", tableName)
-// 	rows, err := db.Connection.Query(query)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to fetch columns: %w", err)
-// 	}
-// 	defer rows.Close()
-//
-// 	var columns []string
-// 	for rows.Next() {
-// 		var colID int
-// 		var colName, colType string
-// 		var notNull, dfltValue, pk int
-// 		if err := rows.Scan(&colID, &colName, &colType, &notNull, &dfltValue, &pk); err != nil {
-// 			return nil, fmt.Errorf("failed to scan column info: %w", err)
-// 		}
-// 		columns = append(columns, colName)
-// 	}
-// 	return columns, nil
-// }
