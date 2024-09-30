@@ -28,12 +28,12 @@ type DBConnItems struct {
 
 func (i DBConnItems) FilterValue() string { return "" }
 
-type itemDelegate struct{}
+type listItemDelegate struct{}
 
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 0 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+func (d listItemDelegate) Height() int                             { return 1 }
+func (d listItemDelegate) Spacing() int                            { return 0 }
+func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	i, ok := listItem.(DBConnItems)
 	if !ok {
 		return
@@ -73,7 +73,7 @@ func NewDBConnModel(width int) *DBConnModel {
 		DBConnItems{Name: "󰆺 Add Connection", URL: "", isButton: true},
 	}
 
-	li := list.New(items, itemDelegate{}, width/4, listHeight)
+	li := list.New(items, listItemDelegate{}, width/4, listHeight)
 	li.Title = "Database Connections"
 	li.SetShowStatusBar(false)
 	li.SetFilteringEnabled(false)

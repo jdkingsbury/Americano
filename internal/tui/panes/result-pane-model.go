@@ -60,7 +60,7 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 	return pane
 }
 
-// NOTE: Function is for testing the table
+// NOTE: Temporary Function for testing the table
 func (m *ResultPaneModel) TestResultPaneTable() {
 	columns := []string{"ID", "Name", "Age", "Occupation", "Country"}
 
@@ -116,7 +116,7 @@ func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 	m.table.SetRows(tableRows)
 }
 
-// Code for changing from active to inactive window
+// Styles for result pane 
 func (m *ResultPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 3).
@@ -131,12 +131,10 @@ func (m *ResultPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
-// Code for functionality on start
 func (m *ResultPaneModel) Init() tea.Cmd {
 	return nil
 }
 
-// Code for updating the state
 func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -154,9 +152,8 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.UpdateTable(msg.Columns, msg.Rows)
 
-		// For Errors and Notifications
+	// Msg for setting errors and notifications
 	case drivers.DBConnMsg:
-		// Appends the cmd to clear notification and error before displaying new result
 		cmds = append(cmds, func() tea.Msg {
 			return ClearNotificationMsg{}
 		})
@@ -169,7 +166,7 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 
-		// For Clearing the Result Pane
+	// Msg for clearing notifications and errors in result pane
 	case ClearNotificationMsg:
 		m.notification = ""
 		m.err = nil
@@ -180,7 +177,7 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateStyles()
 		m.table.SetHeight((m.height / 3) - 3)
 
-		// Recalculate column widths
+		// Calculate column widths
 		availableWidth := m.width - 16 // Account for borders and padding
 		columns := m.table.Columns()   // Get the existing columns
 		columnWidth := availableWidth / len(columns)
@@ -198,8 +195,6 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.table.Focus()
 			}
-		case "enter":
-			m.TestResultPaneTable()
 		case "q":
 			return m, tea.Quit
 		}
@@ -221,12 +216,14 @@ func (m *ResultPaneModel) View() string {
 	}
 
 	if m.err != nil {
+		// For displaying errors
 		return paneStyle.Render(lipgloss.NewStyle().
 			Foreground(lipgloss.Color(rose)).
 			Render(m.err.Error()),
 		)
 	}
 
+	// For displaying notifications
 	if m.notification != "" {
 		return paneStyle.Render(
 			lipgloss.NewStyle().
@@ -237,14 +234,8 @@ func (m *ResultPaneModel) View() string {
 
 	tableView := m.table.View()
 
-	// totalPadding := (m.width - lipgloss.Width(tableView)) / 2
-	// if totalPadding < 0 {
-	//   totalPadding = 0
-	// }
-
 	centeredTable := lipgloss.NewStyle().
 		Padding(0, 2).
-		// PaddingLeft(totalPadding).
 		Render(tableView)
 
 	return paneStyle.Render(centeredTable)

@@ -67,7 +67,6 @@ func (m *LayoutModel) updatePaneSizes() {
 	}
 
 	m.footer.width = m.width
-	m.footer.updateStyle()
 }
 
 func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane *ResultPaneModel) (*EditorPaneModel, tea.Cmd) {
