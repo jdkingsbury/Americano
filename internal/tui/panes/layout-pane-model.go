@@ -78,7 +78,7 @@ func setupEditorPaneForDBConnection(dbURL string, width, height int) (*EditorPan
 		}
 	}
 
-	// Initialize the editor pane with connected database and resultPane
+	// Initialize the editor pane with connected database
 	editorPane := NewEditorPane(width, height, db)
 	return editorPane, func() tea.Msg {
 		return notificationMsg
@@ -93,6 +93,7 @@ func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
 		}
 	}
 
+	// Initialize the db tree with connected database
 	dbTree := NewDBTreeModel(db)
 	return dbTree, func() tea.Msg {
 		return notificationMsg
@@ -166,18 +167,14 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		switch msg.String() {
-		// Keymap For Switching To Next Pane. Also Changes The Active Pane
-		case "n": // Press 'n' to simulate a notification
-			return m, func() tea.Msg {
-				return msgtypes.NotificationMsg{Notification: "Test Notification!"}
-			}
 
+		// Keymap For Switching To Next Pane.
 		case "tab":
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
 			m.setActivePane(true)
 
-			// Keymap For Switching To Previous Pane. Also Changes The Active Pane
+		// Keymap For Switching To Previous Pane.
 		case "shift+tab":
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))

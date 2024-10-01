@@ -37,7 +37,7 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 		height:     height,
 		textarea:   ti,
 		err:        nil,
-		focused:    true,
+		focused:    false,
 		db:         db,
 	}
 

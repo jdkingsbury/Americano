@@ -1,8 +1,6 @@
 package panes
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -75,9 +73,10 @@ func (m *ResultPaneModel) TestResultPaneTable() {
 	m.UpdateTable(columns, rows)
 }
 
+// TODO: Look into how we want to display successful and failed messages
 func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 	if len(columns) == 0 {
-		fmt.Println("No columns to display")
+		msgtypes.NewNotificationMsg("No columns to display")
 		return
 	}
 
@@ -154,10 +153,18 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.UpdateTable(msg.Columns, msg.Rows)
 
 	case msgtypes.NotificationMsg:
+		cmds = append(cmds, func() tea.Msg {
+			return ClearNotificationMsg{}
+		})
+
 		m.notification = msg.Notification
 		m.err = nil
 
 	case msgtypes.ErrMsg:
+		cmds = append(cmds, func() tea.Msg {
+			return ClearNotificationMsg{}
+		})
+
 		m.notification = ""
 		m.err = msg.Err
 
@@ -190,8 +197,6 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.table.Focus()
 			}
-		case "q":
-			return m, tea.Quit
 		}
 	}
 	var tableCmd tea.Cmd
