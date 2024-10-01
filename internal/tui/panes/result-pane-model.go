@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
+	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 // NOTE: May need to change how we update the width and height of the table
@@ -116,7 +117,7 @@ func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 	m.table.SetRows(tableRows)
 }
 
-// Styles for result pane 
+// Styles for result pane
 func (m *ResultPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 3).
@@ -152,19 +153,13 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.UpdateTable(msg.Columns, msg.Rows)
 
-	// Msg for setting errors and notifications
-	case drivers.DBConnMsg:
-		cmds = append(cmds, func() tea.Msg {
-			return ClearNotificationMsg{}
-		})
+	case msgtypes.NotificationMsg:
+		m.notification = msg.Notification
+		m.err = nil
 
-		if msg.Error != nil {
-			m.err = msg.Error
-			m.notification = ""
-		} else {
-			m.notification = msg.Notification
-			m.err = nil
-		}
+	case msgtypes.ErrMsg:
+		m.notification = ""
+		m.err = msg.Err
 
 	// Msg for clearing notifications and errors in result pane
 	case ClearNotificationMsg:

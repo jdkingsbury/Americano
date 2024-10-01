@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
+	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 type pane int
@@ -70,34 +71,31 @@ func (m *LayoutModel) updatePaneSizes() {
 }
 
 func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane *ResultPaneModel) (*EditorPaneModel, tea.Cmd) {
-	// Connect to database
-	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
-	if err != nil {
+	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
+	if db == nil {
 		return nil, func() tea.Msg {
-			return dbConnMsg
+			return notificationMsg
 		}
 	}
 
 	// Initialize the editor pane with connected database and resultPane
-	editorPane := NewEditorPane(width, height, dbConnMsg.DB, resultPane)
+	editorPane := NewEditorPane(width, height, db, resultPane)
 	return editorPane, func() tea.Msg {
-		return dbConnMsg
+		return notificationMsg
 	}
 }
 
-// TODO: Add result pane 
 func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
-	// Connect to database
-	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
-	if err != nil {
+	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
+	if db == nil {
 		return nil, func() tea.Msg {
-			return dbConnMsg
+			return notificationMsg
 		}
 	}
 
-	dbTree := NewDBTreeModel(dbConnMsg.DB)
+	dbTree := NewDBTreeModel(db)
 	return dbTree, func() tea.Msg {
-		return dbConnMsg
+		return notificationMsg
 	}
 }
 
@@ -112,18 +110,18 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-  case InsertQueryMsg:
-    // Pass the query to editor pane 
-    editorPane := m.panes[EditorPane].(*EditorPaneModel)
-    m.panes[EditorPane], cmd = editorPane.Update(msg)
-    return m, cmd
+	case InsertQueryMsg:
+		// Pass the query to editor pane
+		editorPane := m.panes[EditorPane].(*EditorPaneModel)
+		m.panes[EditorPane], cmd = editorPane.Update(msg)
+		return m, cmd
 
 	case SetupDBTreeMsg:
 		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL)
 
 		if dbTree != nil {
-      sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
-      sideBarPane.dbTreeModel = dbTree
+			sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+			sideBarPane.dbTreeModel = dbTree
 			sideBarPane.currentView = DBTreeView
 		}
 
@@ -138,15 +136,12 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, setupCmd
 
-	case drivers.DBConnMsg:
-
-		clearCmd := func() tea.Msg {
-			return ClearNotificationMsg{}
-		}
-
-		// Send connection message to Result Pane
+	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
-		resultPane.Update(clearCmd)
+		resultPane.Update(msg)
+
+	case msgtypes.ErrMsg:
+		resultPane := m.panes[ResultPane].(*ResultPaneModel)
 		resultPane.Update(msg)
 
 	case drivers.QueryResultMsg:
@@ -166,17 +161,20 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if sideBarPane.showInputForm {
 				break
 			}
+			// Check if using the editor pane
+		} else if m.currentPane == EditorPane {
+			editorPane := m.panes[EditorPane].(*EditorPaneModel)
+			if editorPane.focused {
+				break
+			}
 		}
-		//     // Check if using the editor pane
-		// } else if m.currentPane == EditorPane {
-		// 	editorPane := m.panes[EditorPane].(*EditorPaneModel)
-		// 	if editorPane.focused {
-		// 		break
-		// 	}
-		// }
-
 		switch msg.String() {
 		// Keymap For Switching To Next Pane. Also Changes The Active Pane
+		case "n": // Press 'n' to simulate a notification
+			return m, func() tea.Msg {
+				return msgtypes.NotificationMsg{Notification: "Test Notification!"}
+			}
+
 		case "tab":
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))

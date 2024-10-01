@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jdkingsbury/americano/msgtypes"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -20,12 +21,8 @@ func normalizeSQLiteURL(url string) (string, error) {
 	if len(url) >= 10 && url[:10] == "sqlite:///" {
 		return url[10:], nil
 	}
+	// return "", msgtypes.NewErrMsg(err, "Invalid SQLite URL format")
 	return "", errors.New("Invalid SQLite URL format")
-}
-
-// Tests database connection
-func (db *SQLite) TestConnection(url string) error {
-	return db.Connect(url)
 }
 
 // Opens a connection to sqlite database
@@ -55,7 +52,9 @@ func (db *SQLite) Connect(url string) error {
 	// Test Connection
 	if err := db.Connection.Ping(); err != nil {
 		db.Connection.Close()
-		return fmt.Errorf("Failed to ping the database: %w", err)
+		return msgtypes.NewErrMsg(fmt.Errorf("Failed to ping the database: %w", err))
+	} else {
+		msgtypes.NewNotificationMsg("Successfully connected to database.")
 	}
 
 	return nil

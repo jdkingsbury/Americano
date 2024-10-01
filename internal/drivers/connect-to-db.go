@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 type QueryResultMsg struct {
@@ -12,25 +15,18 @@ type QueryResultMsg struct {
 	Error   error
 }
 
-type DBConnMsg struct {
-	Notification string
-	Error        error
-	DB           Database
-}
-
 type Database interface {
 	Connect(url string) error
-	TestConnection(url string) error
 	CloseConnection() error
 	ExecuteQuery(query string) QueryResultMsg
-  GetDatabaseName() (string, error)
+	GetDatabaseName() (string, error)
 	GetTables() ([]string, error)
 }
 
-func ConnectToDatabase(dbURL string) (DBConnMsg, error) {
+func ConnectToDatabase(dbURL string) (Database, tea.Msg) {
 	parsedURL, err := url.Parse(dbURL)
 	if err != nil {
-		return DBConnMsg{Error: fmt.Errorf("Failed to parse URL: %w", err)}, err
+		return nil, msgtypes.NewErrMsg(fmt.Errorf("Failed to parse URL: %w", err))
 	}
 
 	var db Database
@@ -39,21 +35,21 @@ func ConnectToDatabase(dbURL string) (DBConnMsg, error) {
 	// Determines the database based on URL scheme
 	switch strings.ToLower(parsedURL.Scheme) {
 	case "postgres", "postgresql":
-		notification = fmt.Sprintf("Connecting to PostgreSQL database...")
+		notification = "Connecting to PostgreSQL database..."
 	case "mysql":
-		notification = fmt.Sprintf("Connecting to MySQL database...")
+		notification = "Connecting to MySQL database..."
 	case "sqlite":
-		notification = fmt.Sprintf("Connecting to Sqlite database...")
-		db = &SQLite{}
+		notification = "Connecting to SQLite database..."
+		db = &SQLite{} // Ensure you have your SQLite type defined
 	default:
-		return DBConnMsg{Error: fmt.Errorf("Unsupported database scheme: %s", parsedURL.Scheme)}, nil
+		return nil, msgtypes.NewErrMsg(fmt.Errorf("Unsupported database scheme: %s", parsedURL.Scheme))
 	}
 
 	// Calls connect to establish a connection
 	err = db.Connect(dbURL)
 	if err != nil {
-		return DBConnMsg{Error: fmt.Errorf("Failed to connect to the database: %w", err)}, err
+		return nil, msgtypes.NewErrMsg(fmt.Errorf("Failed to connect to the database: %w", err))
 	}
 
-	return DBConnMsg{Notification: notification, DB: db}, nil
+	return db, msgtypes.NewNotificationMsg(notification)
 }
