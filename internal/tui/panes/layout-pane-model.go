@@ -17,10 +17,6 @@ const (
 	ResultPane
 )
 
-type KeymapMsg struct {
-	KeyMap string
-}
-
 type LayoutModel struct {
 	currentPane pane
 	panes       []tea.Model
@@ -163,10 +159,6 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, setupCmd
-
-	case KeymapMsg:
-		// m.footer.SetKeyBindings(msg.KeyMap)
-		// return m, nil
 
 	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)

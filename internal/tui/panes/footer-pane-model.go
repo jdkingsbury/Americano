@@ -50,8 +50,6 @@ func (m *FooterModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m FooterModel) View() string {
-	var keyMapStrings []string
-
 	if len(m.keyMaps) == 0 {
 		return m.style.Render("Q: Quit | ?: Help")
 	}
