@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
+	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 type pane int
@@ -26,7 +27,7 @@ type LayoutModel struct {
 func NewLayoutModel() *LayoutModel {
 	sideBarPane := NewSideBarPane(0, 0)
 	resultPane := NewResultPaneModel(0, 0)
-	editorPane := NewEditorPane(0, 0, nil, resultPane)
+	editorPane := NewEditorPane(0, 0, nil)
 	footerPane := NewFooterPane(0)
 
 	layout := &LayoutModel{
@@ -67,87 +68,78 @@ func (m *LayoutModel) updatePaneSizes() {
 	}
 
 	m.footer.width = m.width
-	m.footer.updateStyle()
 }
 
-func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane *ResultPaneModel) (*EditorPaneModel, tea.Cmd) {
-	// Connect to database
-	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
-	if err != nil {
+func setupEditorPaneForDBConnection(dbURL string, width, height int) (*EditorPaneModel, tea.Cmd) {
+	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
+	if db == nil {
 		return nil, func() tea.Msg {
-			return dbConnMsg
+			return notificationMsg
 		}
 	}
 
-	// Initialize the editor pane with connected database and resultPane
-	editorPane := NewEditorPane(width, height, dbConnMsg.DB, resultPane)
+	// Initialize the editor pane with connected database
+	editorPane := NewEditorPane(width, height, db)
 	return editorPane, func() tea.Msg {
-		return dbConnMsg
+		return notificationMsg
 	}
 }
 
-// TODO: Add result pane 
 func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
-	// Connect to database
-	dbConnMsg, err := drivers.ConnectToDatabase(dbURL)
-	if err != nil {
+	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
+	if db == nil {
 		return nil, func() tea.Msg {
-			return dbConnMsg
+			return notificationMsg
 		}
 	}
 
-	dbTree := NewDBTreeModel(dbConnMsg.DB)
+	// Initialize the db tree with connected database
+	dbTree := NewDBTreeModel(db)
 	return dbTree, func() tea.Msg {
-		return dbConnMsg
+		return notificationMsg
 	}
 }
 
-// Code for functionality on start
 func (m *LayoutModel) Init() tea.Cmd {
 	return nil
 }
 
-// Code for updating the state
 func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 
-  case InsertQueryMsg:
-    // Pass the query to editor pane 
-    editorPane := m.panes[EditorPane].(*EditorPaneModel)
-    m.panes[EditorPane], cmd = editorPane.Update(msg)
-    return m, cmd
+	case InsertQueryMsg:
+		// Pass the query to editor pane
+		editorPane := m.panes[EditorPane].(*EditorPaneModel)
+		m.panes[EditorPane], cmd = editorPane.Update(msg)
+		return m, cmd
 
 	case SetupDBTreeMsg:
 		dbTree, setupCmd := setupDBTreeForDBConnection(msg.dbURL)
 
 		if dbTree != nil {
-      sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
-      sideBarPane.dbTreeModel = dbTree
+			sideBarPane := m.panes[SideBarPane].(*SideBarPaneModel)
+			sideBarPane.dbTreeModel = dbTree
 			sideBarPane.currentView = DBTreeView
 		}
 
 		return m, setupCmd
 
 	case SetupEditorPaneMsg:
-		resultPane := m.panes[ResultPane].(*ResultPaneModel) // Retrieve the resultPane
-		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height, resultPane)
+		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height)
 		if editorPane != nil {
 			m.panes[EditorPane] = editorPane
 		}
 
 		return m, setupCmd
 
-	case drivers.DBConnMsg:
-
-		clearCmd := func() tea.Msg {
-			return ClearNotificationMsg{}
-		}
-
-		// Send connection message to Result Pane
+	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
-		resultPane.Update(clearCmd)
+		resultPane.Update(msg)
+
+	case msgtypes.ErrMsg:
+		resultPane := m.panes[ResultPane].(*ResultPaneModel)
 		resultPane.Update(msg)
 
 	case drivers.QueryResultMsg:
@@ -167,23 +159,22 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if sideBarPane.showInputForm {
 				break
 			}
+			// Check if using the editor pane
+		} else if m.currentPane == EditorPane {
+			editorPane := m.panes[EditorPane].(*EditorPaneModel)
+			if editorPane.focused {
+				break
+			}
 		}
-		//     // Check if using the editor pane
-		// } else if m.currentPane == EditorPane {
-		// 	editorPane := m.panes[EditorPane].(*EditorPaneModel)
-		// 	if editorPane.focused {
-		// 		break
-		// 	}
-		// }
-
 		switch msg.String() {
-		// Keymap For Switching To Next Pane. Also Changes The Active Pane
+
+		// Keymap For Switching To Next Pane.
 		case "tab":
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
 			m.setActivePane(true)
 
-			// Keymap For Switching To Previous Pane. Also Changes The Active Pane
+		// Keymap For Switching To Previous Pane.
 		case "shift+tab":
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))

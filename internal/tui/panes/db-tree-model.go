@@ -5,7 +5,19 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
+)
+
+var (
+	treeTitleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color(text))
+	treeItemStyle         = lipgloss.NewStyle().Padding(0, 1)
+	treeSelectedItemStyle = lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color(rose)).Background(lipgloss.Color(highlightLow))
+)
+
+const (
+	openCaret   = "▾" // Downward caret for open state
+	closedCaret = "▸" // Rightward caret for closed state
 )
 
 type DBTreeMsg struct {
@@ -47,19 +59,12 @@ func NewDBTreeModel(db drivers.Database) *DBTreeModel {
 			dbName = "Unknown db"
 		}
 
-		tables, err := db.GetTables()
-		if err != nil {
-			originalList = []ListItem{
-				{Title: "No connection"},
-			}
-		} else {
-			originalList = []ListItem{
-				{
-					Title:    dbName,
-					SubItems: buildTableList(tables),
-					IsOpen:   false,
-				},
-			}
+		originalList = []ListItem{
+			{
+				Title:    dbName,
+				SubItems: buildDBTree(db),
+				IsOpen:   false,
+			},
 		}
 	}
 
@@ -69,6 +74,32 @@ func NewDBTreeModel(db drivers.Database) *DBTreeModel {
 		originalList: originalList,
 		flatList:     flatList,
 		cursor:       0,
+	}
+}
+
+// TODO: Work on adding saved queries table when save query feature is added
+func buildDBTree(db drivers.Database) []ListItem {
+	tables, err := db.GetTables()
+	if err != nil {
+		return []ListItem{
+			{Title: "No connection"},
+		}
+	}
+
+	tablesItem := ListItem{
+		Title:    "Tables",
+		IsOpen:   false,
+		SubItems: buildTableList(tables),
+	}
+
+	// savedQueriesItem := ListItem {
+	//   Title: "Saved Queries",
+	//   IsOpen: false,
+	// }
+
+	return []ListItem{
+		tablesItem,
+		// savedQueriesItem,
 	}
 }
 
@@ -88,9 +119,9 @@ func buildTableList(tables []string) []ListItem {
 // Sub items containing queries for tables
 func buildTableSubItems(table string) []ListItem {
 	return []ListItem{
-		{Title: "list", Query: fmt.Sprintf("SELECT * FROM %s;", table)},
-		{Title: "column", Query: fmt.Sprintf("PRAGMA table_info(%s);", table)},
-		{Title: "foreign key", Query: fmt.Sprintf("PRAGMA foreign_key_list(%s);", table)},
+		{Title: " list", Query: fmt.Sprintf("SELECT * FROM %s;", table)},
+		{Title: " column", Query: fmt.Sprintf("PRAGMA table_info(%s);", table)},
+		{Title: " foreign key", Query: fmt.Sprintf("PRAGMA foreign_key_list(%s);", table)},
 	}
 }
 
@@ -101,7 +132,7 @@ func flattenList(items []ListItem, level int) []FlatListItem {
 			Title:     item.Title,
 			Level:     level,
 			IsOpen:    item.IsOpen,
-			IsSubItem: level > 0,
+			IsSubItem: len(item.SubItems) > 0,
 		}
 		flatList = append(flatList, flatItem)
 
@@ -137,7 +168,9 @@ func getQueryForItem(title string, items []ListItem) string {
 	return ""
 }
 
-// Update the collapsible state and return true or false if found. Returning a bool for when making tests
+// NOTE: Function is returning a bool to ensure recursion stops when found and also for testing when tests are added.
+
+// Update the collapsible state and return true or false if found.
 func (m *DBTreeModel) updateOriginalListState(items []ListItem, title string, currentLevel, targetLevel int) bool {
 	for i := range items {
 		// Check if this is the correct item based on the title and level
@@ -162,15 +195,23 @@ func (m *DBTreeModel) updateOriginalListState(items []ListItem, title string, cu
 func renderFlatList(flatList []FlatListItem, cursor int) string {
 	var b strings.Builder
 
-	title := listTitleStyle.Render("Database Connection Tree")
+	title := treeTitleStyle.Render("Database Connection Tree")
 	b.WriteString(fmt.Sprintf("%s\n", title))
 
 	for i, item := range flatList {
 		indent := strings.Repeat("  ", item.Level)
+		caret := ""
+
+		if item.IsOpen && item.IsSubItem {
+			caret = openCaret
+		} else if !item.IsOpen && item.IsSubItem {
+			caret = closedCaret
+		}
+
 		if i == cursor {
-			b.WriteString(fmt.Sprintf("%s> %s\n", indent, listSelectedItemStyle.Render(item.Title))) // Highlight the selected item
+			b.WriteString(fmt.Sprintf("%s %s %s\n", indent, caret, treeSelectedItemStyle.Render("> "+item.Title))) // Highlight the selected item
 		} else {
-			b.WriteString(fmt.Sprintf("%s  %s\n", indent, listItemStyle.Render(item.Title))) // Normal item
+			b.WriteString(fmt.Sprintf("%s %s %s\n", indent, caret, treeItemStyle.Render(item.Title))) // Normal item
 		}
 	}
 
@@ -196,7 +237,6 @@ func (m *DBTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			query := getQueryForItem(m.flatList[m.cursor].Title, m.originalList)
 			if query != "" {
 				// Send the message with the query for the editor
-				// NOTE: When sending tea msg you need to pass to layout and have layout send to the editor pane
 				return m, func() tea.Msg {
 					return InsertQueryMsg{Query: query}
 				}

@@ -106,7 +106,6 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentView = ConnectionsView
 	}
 
-	// Input Form for adding a connection
 	if m.showInputForm {
 		updatedForm, formCmd := m.dbFormModel.Update(msg)
 		m.dbFormModel = updatedForm.(*DBFormModel)

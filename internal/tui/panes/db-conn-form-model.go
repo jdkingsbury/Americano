@@ -31,11 +31,10 @@ type DBFormModel struct {
 func NewDBFormModel() *DBFormModel {
 	m := DBFormModel{
 		inputs: make([]textinput.Model, 2),
-		submit: "[ Submit ]", // Initialize the submit button label
+		submit: "[ Submit ]",
 		title:  "Add Connection",
 	}
 
-	// Initialize text inputs
 	var ti textinput.Model
 	for i := range m.inputs {
 		ti = textinput.New()
@@ -45,7 +44,7 @@ func NewDBFormModel() *DBFormModel {
 		switch i {
 		case 0:
 			ti.Placeholder = "Enter Connection Name"
-			ti.Focus() // Focus on the first input initially
+			ti.Focus()
 		case 1:
 			ti.Placeholder = "Enter Connection URL"
 		}
@@ -59,7 +58,7 @@ func NewDBFormModel() *DBFormModel {
 func (m *DBFormModel) Reset() {
 	m.focusIndex = 0
 	for i := range m.inputs {
-		m.inputs[i].SetValue("") // Clear input
+		m.inputs[i].SetValue("")
 		if i == 0 {
 			m.inputs[i].Focus()
 		} else {
@@ -69,7 +68,7 @@ func (m *DBFormModel) Reset() {
 }
 
 func (m *DBFormModel) Init() tea.Cmd {
-	return textinput.Blink // Enable blinking cursor for focused input
+	return textinput.Blink
 }
 
 func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -82,17 +81,15 @@ func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg {
 				return CancelFormMsg{}
 			}
-		case "tab": // Tab moves forward through inputs and submit button
-			m.focusIndex = (m.focusIndex + 1) % (len(m.inputs) + 1) // Include submit button
-		case "shift+tab": // Shift+Tab moves backward through inputs and submit button
-			m.focusIndex = (m.focusIndex - 1 + len(m.inputs) + 1) % (len(m.inputs) + 1)
-		case "down": // Down arrow moves forward through inputs and submit button
+
+		case "tab", "down":
 			m.focusIndex = (m.focusIndex + 1) % (len(m.inputs) + 1)
-		case "up": // Up arrow moves backward through inputs and submit button
+
+		case "shift+tab", "up": // Shift+Tab moves backward through inputs and submit button
 			m.focusIndex = (m.focusIndex - 1 + len(m.inputs) + 1) % (len(m.inputs) + 1)
+
 		case "enter":
 			if m.focusIndex == len(m.inputs) {
-				// Submit button is focused, handle form submission
 				return m, func() tea.Msg {
 					return SubmitFormMsg{
 						Name: m.inputs[0].Value(),
@@ -127,7 +124,7 @@ func (m *DBFormModel) View() string {
 
 	output += formTitleStyle.Render(m.title) + "\n"
 
-	// Render all input fields
+  // Input fields
 	for i := range m.inputs {
 		if i == m.focusIndex {
 			output += formFocusedStyle.Render(m.inputs[i].View()) + "\n"
@@ -136,7 +133,7 @@ func (m *DBFormModel) View() string {
 		}
 	}
 
-	// Render submit button
+  // Button field
 	if m.focusIndex == len(m.inputs) { // Focused state for submit button
 		output += formSubmitStyle.Render("\n[ Submit ]\n")
 	} else {

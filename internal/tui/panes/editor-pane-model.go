@@ -5,7 +5,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
-	"github.com/jdkingsbury/americano/msgtypes"
 )
 
 /* Handles The SQL Editor Pane*/
@@ -24,11 +23,10 @@ type EditorPaneModel struct {
 	focused      bool
 	isActive     bool
 	db           drivers.Database
-	resultPane   *ResultPaneModel
 }
 
 // Initialize Editor Pane
-func NewEditorPane(width, height int, db drivers.Database, resultPane *ResultPaneModel) *EditorPaneModel {
+func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	ti := textarea.New()
 	ti.Placeholder = "Enter SQL Code Here..."
 	ti.CharLimit = 1000
@@ -39,9 +37,8 @@ func NewEditorPane(width, height int, db drivers.Database, resultPane *ResultPan
 		height:     height,
 		textarea:   ti,
 		err:        nil,
-		focused:    true,
+		focused:    false,
 		db:         db,
-		resultPane: resultPane,
 	}
 
 	pane.updateStyles()
@@ -64,12 +61,10 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
-// Code for functionality on start
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
 }
 
-// Code for updating the state
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -95,7 +90,6 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.Type {
-		// Keymap to switch stop editing
 		case tea.KeyEsc:
 			if m.textarea.Focused() {
 				m.textarea.Blur()
@@ -113,12 +107,9 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 			}
 		}
-	case msgtypes.ErrMsg:
-		m.err = msg
-		return m, nil
 	}
 
-	// Resizes the text area view to fit main pane
+	// Used for resizing the text area view to fit main pane
 	m.textarea, cmd = m.textarea.Update(msg)
 	cmds = append(cmds, cmd)
 
@@ -133,8 +124,6 @@ func (m *EditorPaneModel) resizeTextArea() {
 
 // Editor View
 func (m EditorPaneModel) View() string {
-	// Render text area inside the main pane
-
 	var paneStyle lipgloss.Style
 	if m.isActive {
 		paneStyle = m.activeStyles
@@ -142,6 +131,5 @@ func (m EditorPaneModel) View() string {
 		paneStyle = m.styles
 	}
 
-	mainPane := paneStyle.Render(m.textarea.View())
-	return mainPane
+	return paneStyle.Render(m.textarea.View())
 }
