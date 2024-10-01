@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -10,9 +11,10 @@ import (
 /* Basic Footer View */
 
 type FooterModel struct {
-	style  lipgloss.Style
-	width  int
-	height int
+	style   lipgloss.Style
+	keyMaps []key.Binding
+	width   int
+	height  int
 }
 
 func NewFooterPane(width int) *FooterModel {
@@ -30,6 +32,10 @@ func NewFooterPane(width int) *FooterModel {
 	return footer
 }
 
+func (m *FooterModel) SetKeyBindings(keyMaps []key.Binding) {
+	m.keyMaps = keyMaps
+}
+
 func (m *FooterModel) Init() tea.Cmd {
 	return nil
 }
@@ -44,5 +50,16 @@ func (m *FooterModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m FooterModel) View() string {
-	return m.style.Render("Q: Quit | ?: Help")
+	var keyMapStrings []string
+
+	if len(m.keyMaps) == 0 {
+		return m.style.Render("Q: Quit | ?: Help")
+	}
+
+	var renderKeys []string
+	for _, k := range m.keyMaps {
+		renderKeys = append(renderKeys, k.Help().Key+" "+k.Help().Desc)
+	}
+
+	return m.style.Render(" " + lipgloss.JoinHorizontal(lipgloss.Left, renderKeys...))
 }

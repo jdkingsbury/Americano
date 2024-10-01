@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
@@ -16,12 +17,40 @@ const (
 	ResultPane
 )
 
+type KeymapMsg struct {
+	KeyMap string
+}
+
 type LayoutModel struct {
 	currentPane pane
 	panes       []tea.Model
 	footer      *FooterModel
 	width       int
 	height      int
+	keys        layoutKeyMap
+}
+
+type layoutKeyMap struct {
+	NextPane key.Binding
+	PrevPane key.Binding
+	Quit     key.Binding
+}
+
+func newLayoutPaneKeyMapModel() layoutKeyMap {
+	return layoutKeyMap{
+		NextPane: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "next pane"),
+		),
+		PrevPane: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "previous pane"),
+		),
+		Quit: key.NewBinding(
+			key.WithKeys("Q"),
+			key.WithHelp("Q", "quit americano"),
+		),
+	}
 }
 
 func NewLayoutModel() *LayoutModel {
@@ -40,6 +69,7 @@ func NewLayoutModel() *LayoutModel {
 		footer: footerPane,
 		width:  0,
 		height: 0,
+		keys:   newLayoutPaneKeyMapModel(),
 	}
 
 	// Set the initial active pane
@@ -134,6 +164,10 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, setupCmd
 
+	case KeymapMsg:
+		// m.footer.SetKeyBindings(msg.KeyMap)
+		// return m, nil
+
 	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
 		resultPane.Update(msg)
@@ -166,21 +200,17 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
-		switch msg.String() {
 
-		// Keymap For Switching To Next Pane.
-		case "tab":
+		switch {
+		case key.Matches(msg, m.keys.NextPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
 			m.setActivePane(true)
-
-		// Keymap For Switching To Previous Pane.
-		case "shift+tab":
+		case key.Matches(msg, m.keys.PrevPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
 			m.setActivePane(true)
-
-		case "Q":
+		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
 		}
 	}
