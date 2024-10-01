@@ -27,7 +27,7 @@ type LayoutModel struct {
 func NewLayoutModel() *LayoutModel {
 	sideBarPane := NewSideBarPane(0, 0)
 	resultPane := NewResultPaneModel(0, 0)
-	editorPane := NewEditorPane(0, 0, nil, resultPane)
+	editorPane := NewEditorPane(0, 0, nil)
 	footerPane := NewFooterPane(0)
 
 	layout := &LayoutModel{
@@ -70,7 +70,7 @@ func (m *LayoutModel) updatePaneSizes() {
 	m.footer.width = m.width
 }
 
-func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane *ResultPaneModel) (*EditorPaneModel, tea.Cmd) {
+func setupEditorPaneForDBConnection(dbURL string, width, height int) (*EditorPaneModel, tea.Cmd) {
 	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
 	if db == nil {
 		return nil, func() tea.Msg {
@@ -79,7 +79,7 @@ func setupEditorPaneForDBConnection(dbURL string, width, height int, resultPane 
 	}
 
 	// Initialize the editor pane with connected database and resultPane
-	editorPane := NewEditorPane(width, height, db, resultPane)
+	editorPane := NewEditorPane(width, height, db)
 	return editorPane, func() tea.Msg {
 		return notificationMsg
 	}
@@ -99,12 +99,10 @@ func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
 	}
 }
 
-// Code for functionality on start
 func (m *LayoutModel) Init() tea.Cmd {
 	return nil
 }
 
-// Code for updating the state
 func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -128,8 +126,7 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, setupCmd
 
 	case SetupEditorPaneMsg:
-		resultPane := m.panes[ResultPane].(*ResultPaneModel) // Retrieve the resultPane
-		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height, resultPane)
+		editorPane, setupCmd := setupEditorPaneForDBConnection(msg.dbURL, m.width, m.height)
 		if editorPane != nil {
 			m.panes[EditorPane] = editorPane
 		}

@@ -92,14 +92,14 @@ func buildDBTree(db drivers.Database) []ListItem {
 		SubItems: buildTableList(tables),
 	}
 
-  // savedQueriesItem := ListItem {
-  //   Title: "Saved Queries",
-  //   IsOpen: false,
-  // }
+	// savedQueriesItem := ListItem {
+	//   Title: "Saved Queries",
+	//   IsOpen: false,
+	// }
 
 	return []ListItem{
 		tablesItem,
-    // savedQueriesItem,
+		// savedQueriesItem,
 	}
 }
 
@@ -168,7 +168,9 @@ func getQueryForItem(title string, items []ListItem) string {
 	return ""
 }
 
-// Update the collapsible state and return true or false if found. Returning a bool for when making tests
+// NOTE: Function is returning a bool to ensure recursion stops when found and also for testing when tests are added.
+
+// Update the collapsible state and return true or false if found.
 func (m *DBTreeModel) updateOriginalListState(items []ListItem, title string, currentLevel, targetLevel int) bool {
 	for i := range items {
 		// Check if this is the correct item based on the title and level

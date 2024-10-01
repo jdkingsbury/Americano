@@ -11,6 +11,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// TODO: Check to see how we plan to display or log different errors and notifications
+
 type SQLite struct {
 	Connection    *sql.DB
 	connectionUrl string
