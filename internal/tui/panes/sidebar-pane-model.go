@@ -46,6 +46,10 @@ func newSideBarKeyMap() sideBarKeyMap {
 	}
 }
 
+func (m SideBarPaneModel) KeyMap() []key.Binding {
+	return []key.Binding{m.keys.SwitchView, m.keys.Select}
+}
+
 func NewSideBarPane(width, height int) *SideBarPaneModel {
 	dbConnModel := NewDBConnModel(width)
 	dbTreeModel := NewDBTreeModel(nil)

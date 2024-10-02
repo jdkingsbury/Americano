@@ -77,6 +77,10 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+func (m *EditorPaneModel) KeyMap() []key.Binding {
+	return []key.Binding{m.keys.ExecuteQuery}
+}
+
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
 }

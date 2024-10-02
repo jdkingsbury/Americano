@@ -160,6 +160,10 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, setupCmd
 
+	case SetKeyMapMsg:
+		m.footer.SetKeyBindings(msg.FullHelpKeys, msg.ShortHelpKeys)
+		return m, nil
+
 	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
 		resultPane.Update(msg)
@@ -197,11 +201,13 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.NextPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
-			m.setActivePane(true)
+			return m, tea.Batch(cmd, m.setActivePane(true))
+
 		case key.Matches(msg, m.keys.PrevPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
-			m.setActivePane(true)
+			return m, tea.Batch(cmd, m.setActivePane(true))
+
 		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
 		}
@@ -217,15 +223,45 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // Helper function to set the active status of the current pane
-func (m *LayoutModel) setActivePane(isActive bool) {
+func (m *LayoutModel) setActivePane(isActive bool) tea.Cmd {
+	layoutFullHelp := [][]key.Binding{
+		{m.keys.NextPane, m.keys.PrevPane, m.keys.Quit}, // Layout keybindings
+	}
+
 	switch pane := m.panes[m.currentPane].(type) {
 	case *SideBarPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	case *EditorPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	case *ResultPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	}
+
+	return nil
 }
 
 // Application Layout View

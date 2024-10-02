@@ -37,6 +37,10 @@ func newResultKeyMaps() resultKeyMaps {
 	}
 }
 
+func (m ResultPaneModel) KeyMap() []key.Binding {
+	return []key.Binding{m.keys.Focus}
+}
+
 // Initialize Result Pane
 func NewResultPaneModel(width, height int) *ResultPaneModel {
 	columns := []table.Column{}
