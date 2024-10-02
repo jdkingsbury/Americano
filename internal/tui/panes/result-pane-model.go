@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -20,6 +21,20 @@ type ResultPaneModel struct {
 	isActive     bool
 	table        table.Model
 	notification string
+	keys         resultKeyMaps
+}
+
+type resultKeyMaps struct {
+	Focus key.Binding
+}
+
+func newResultKeyMaps() resultKeyMaps {
+	return resultKeyMaps{
+		Focus: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "toggle table focus"),
+		),
+	}
 }
 
 // Initialize Result Pane
@@ -52,6 +67,7 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 		height: height,
 		err:    nil,
 		table:  t,
+		keys:   newResultKeyMaps(),
 	}
 
 	pane.updateStyles()
@@ -190,8 +206,8 @@ func (m *ResultPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.table.SetColumns(columns)
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
+		switch {
+		case key.Matches(msg, m.keys.Focus):
 			if m.table.Focused() {
 				m.table.Blur()
 			} else {

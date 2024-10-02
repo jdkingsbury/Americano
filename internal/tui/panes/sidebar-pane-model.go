@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -24,6 +25,25 @@ type SideBarPaneModel struct {
 	dbTreeModel   *DBTreeModel
 	dbFormModel   *DBFormModel
 	showInputForm bool
+	keys          sideBarKeyMap
+}
+
+type sideBarKeyMap struct {
+	SwitchView key.Binding
+	Select     key.Binding
+}
+
+func newSideBarKeyMap() sideBarKeyMap {
+	return sideBarKeyMap{
+		SwitchView: key.NewBinding(
+			key.WithKeys("v"),
+			key.WithHelp("v", "switch view"),
+		),
+		Select: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "select item"),
+		),
+	}
 }
 
 func NewSideBarPane(width, height int) *SideBarPaneModel {
@@ -38,6 +58,7 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 		dbTreeModel: dbTreeModel,
 		dbFormModel: dbFormModel,
 		currentView: ConnectionsView,
+		keys:        newSideBarKeyMap(),
 	}
 
 	pane.updateStyles()
@@ -47,13 +68,13 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 
 func (m *SideBarPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
-		Width(( m.width / 3 ) - 10).
+		Width((m.width / 3) - 10).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(iris))
 
 	m.activeStyles = lipgloss.NewStyle().
-		Width(( m.width / 3 ) - 10).
+		Width((m.width / 3) - 10).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(rose))
@@ -73,17 +94,16 @@ func (m *SideBarPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateStyles()
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "v":
+		switch {
+		case key.Matches(msg, m.keys.Select):
+			if m.currentView == ConnectionsView && m.dbConnModel.FocusedOnButton() {
+				m.showInputForm = true
+			}
+		case key.Matches(msg, m.keys.SwitchView):
 			if m.currentView == ConnectionsView {
 				m.currentView = DBTreeView
 			} else {
 				m.currentView = ConnectionsView
-			}
-
-		case "enter":
-			if m.currentView == ConnectionsView && m.dbConnModel.FocusedOnButton() {
-				m.showInputForm = true
 			}
 		}
 
