@@ -29,6 +29,7 @@ type LayoutModel struct {
 type layoutKeyMap struct {
 	NextPane key.Binding
 	PrevPane key.Binding
+	Help     key.Binding
 	Quit     key.Binding
 }
 
@@ -41,6 +42,10 @@ func newLayoutPaneKeyMapModel() layoutKeyMap {
 		PrevPane: key.NewBinding(
 			key.WithKeys("shift+tab"),
 			key.WithHelp("shift+tab", "previous pane"),
+		),
+		Help: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
 		),
 		Quit: key.NewBinding(
 			key.WithKeys("Q"),
@@ -127,7 +132,7 @@ func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
 }
 
 func (m *LayoutModel) Init() tea.Cmd {
-	return nil
+	return m.setActivePane(true)
 }
 
 func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -207,6 +212,11 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
 			return m, tea.Batch(cmd, m.setActivePane(true))
+
+		case key.Matches(msg, m.keys.Help):
+			if m.currentPane != EditorPane {
+				m.footer.showFullHelp = !m.footer.showFullHelp
+			}
 
 		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
