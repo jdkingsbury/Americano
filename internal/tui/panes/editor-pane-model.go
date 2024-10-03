@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -23,6 +24,20 @@ type EditorPaneModel struct {
 	focused      bool
 	isActive     bool
 	db           drivers.Database
+	keys         editorKeyMap
+}
+
+type editorKeyMap struct {
+	ExecuteQuery key.Binding
+}
+
+func newEditorPaneKeymap() editorKeyMap {
+	return editorKeyMap{
+		ExecuteQuery: key.NewBinding(
+			key.WithKeys("ctrl+e"),
+			key.WithHelp("ctrl+e", "execute query"),
+		),
+	}
 }
 
 // Initialize Editor Pane
@@ -33,12 +48,13 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	ti.ShowLineNumbers = false
 
 	pane := &EditorPaneModel{
-		width:      width,
-		height:     height,
-		textarea:   ti,
-		err:        nil,
-		focused:    false,
-		db:         db,
+		width:    width,
+		height:   height,
+		textarea: ti,
+		err:      nil,
+		focused:  false,
+		db:       db,
+		keys:     newEditorPaneKeymap(),
 	}
 
 	pane.updateStyles()
@@ -61,6 +77,10 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+func (m *EditorPaneModel) KeyMap() []key.Binding {
+	return []key.Binding{m.keys.ExecuteQuery}
+}
+
 func (m *EditorPaneModel) Init() tea.Cmd {
 	return m.textarea.Focus()
 }
@@ -81,8 +101,8 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
+		switch {
+		case key.Matches(msg, m.keys.ExecuteQuery):
 			query := m.textarea.Value()
 			return m, func() tea.Msg {
 				return m.db.ExecuteQuery(query)

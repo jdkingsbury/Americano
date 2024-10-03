@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -66,6 +67,20 @@ type DBConnModel struct {
 	choice     DBConnItems
 	focusIndex int
 	database   drivers.Database
+	keys       dbConnKeyMaps
+}
+
+type dbConnKeyMaps struct {
+	Select key.Binding
+}
+
+func newDBConnKeyMap() dbConnKeyMaps {
+	return dbConnKeyMaps{
+		Select: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "select item"),
+		),
+	}
 }
 
 func NewDBConnModel(width int) *DBConnModel {
@@ -83,6 +98,7 @@ func NewDBConnModel(width int) *DBConnModel {
 
 	pane := &DBConnModel{
 		list: li,
+		keys: newDBConnKeyMap(),
 	}
 
 	return pane
@@ -102,11 +118,15 @@ func (m *DBConnModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
+		switch {
+		case key.Matches(msg, m.keys.Select):
 			// Handle database connection
 			item, ok := m.list.SelectedItem().(DBConnItems)
-			if ok && item.URL != "" {
+			if !ok {
+				return m, nil
+			}
+
+			if item.URL != "" {
 				setupDBTreeCmd := func() tea.Msg {
 					return SetupDBTreeMsg{dbURL: item.URL}
 				}

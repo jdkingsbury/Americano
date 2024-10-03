@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -26,6 +27,35 @@ type DBFormModel struct {
 	inputs     []textinput.Model
 	submit     string
 	title      string
+	keys       dbFormKeyMap
+}
+
+type dbFormKeyMap struct {
+	CancelForm key.Binding
+	NextInput  key.Binding
+	PrevInput  key.Binding
+	SubmitForm key.Binding
+}
+
+func newDBFormKeyMap() dbFormKeyMap {
+	return dbFormKeyMap{
+		CancelForm: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "cancel form input"),
+		),
+		NextInput: key.NewBinding(
+			key.WithKeys("tab", "down"),
+			key.WithHelp("↓/tab", "next input field"),
+		),
+		PrevInput: key.NewBinding(
+			key.WithKeys("shift+tab", "up"),
+			key.WithHelp("↑/shift+tab", "previous input field"),
+		),
+		SubmitForm: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "submit form"),
+		),
+	}
 }
 
 func NewDBFormModel() *DBFormModel {
@@ -33,6 +63,7 @@ func NewDBFormModel() *DBFormModel {
 		inputs: make([]textinput.Model, 2),
 		submit: "[ Submit ]",
 		title:  "Add Connection",
+		keys:   newDBFormKeyMap(),
 	}
 
 	var ti textinput.Model
@@ -76,19 +107,18 @@ func (m *DBFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
+		switch {
+		case key.Matches(msg, m.keys.CancelForm):
 			return m, func() tea.Msg {
 				return CancelFormMsg{}
 			}
-
-		case "tab", "down":
+		case key.Matches(msg, m.keys.NextInput):
 			m.focusIndex = (m.focusIndex + 1) % (len(m.inputs) + 1)
 
-		case "shift+tab", "up": // Shift+Tab moves backward through inputs and submit button
+		case key.Matches(msg, m.keys.PrevInput):
 			m.focusIndex = (m.focusIndex - 1 + len(m.inputs) + 1) % (len(m.inputs) + 1)
 
-		case "enter":
+		case key.Matches(msg, m.keys.SubmitForm):
 			if m.focusIndex == len(m.inputs) {
 				return m, func() tea.Msg {
 					return SubmitFormMsg{
@@ -124,7 +154,7 @@ func (m *DBFormModel) View() string {
 
 	output += formTitleStyle.Render(m.title) + "\n"
 
-  // Input fields
+	// Input fields
 	for i := range m.inputs {
 		if i == m.focusIndex {
 			output += formFocusedStyle.Render(m.inputs[i].View()) + "\n"
@@ -133,7 +163,7 @@ func (m *DBFormModel) View() string {
 		}
 	}
 
-  // Button field
+	// Button field
 	if m.focusIndex == len(m.inputs) { // Focused state for submit button
 		output += formSubmitStyle.Render("\n[ Submit ]\n")
 	} else {

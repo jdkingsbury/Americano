@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
@@ -22,6 +23,35 @@ type LayoutModel struct {
 	footer      *FooterModel
 	width       int
 	height      int
+	keys        layoutKeyMap
+}
+
+type layoutKeyMap struct {
+	NextPane key.Binding
+	PrevPane key.Binding
+	Help     key.Binding
+	Quit     key.Binding
+}
+
+func newLayoutPaneKeyMapModel() layoutKeyMap {
+	return layoutKeyMap{
+		NextPane: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "next pane"),
+		),
+		PrevPane: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "previous pane"),
+		),
+		Help: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
+		),
+		Quit: key.NewBinding(
+			key.WithKeys("Q"),
+			key.WithHelp("Q", "quit americano"),
+		),
+	}
 }
 
 func NewLayoutModel() *LayoutModel {
@@ -40,6 +70,7 @@ func NewLayoutModel() *LayoutModel {
 		footer: footerPane,
 		width:  0,
 		height: 0,
+		keys:   newLayoutPaneKeyMapModel(),
 	}
 
 	// Set the initial active pane
@@ -101,7 +132,7 @@ func setupDBTreeForDBConnection(dbURL string) (*DBTreeModel, tea.Cmd) {
 }
 
 func (m *LayoutModel) Init() tea.Cmd {
-	return nil
+	return m.setActivePane(true)
 }
 
 func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -133,6 +164,10 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, setupCmd
+
+	case SetKeyMapMsg:
+		m.footer.SetKeyBindings(msg.FullHelpKeys, msg.ShortHelpKeys)
+		return m, nil
 
 	case msgtypes.NotificationMsg:
 		resultPane := m.panes[ResultPane].(*ResultPaneModel)
@@ -166,21 +201,24 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
-		switch msg.String() {
 
-		// Keymap For Switching To Next Pane.
-		case "tab":
+		switch {
+		case key.Matches(msg, m.keys.NextPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) + 1) % len(m.panes))
-			m.setActivePane(true)
+			return m, tea.Batch(cmd, m.setActivePane(true))
 
-		// Keymap For Switching To Previous Pane.
-		case "shift+tab":
+		case key.Matches(msg, m.keys.PrevPane):
 			m.setActivePane(false)
 			m.currentPane = pane((int(m.currentPane) - 1 + len(m.panes)) % len(m.panes))
-			m.setActivePane(true)
+			return m, tea.Batch(cmd, m.setActivePane(true))
 
-		case "Q":
+		case key.Matches(msg, m.keys.Help):
+			if m.currentPane != EditorPane {
+				m.footer.showFullHelp = !m.footer.showFullHelp
+			}
+
+		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
 		}
 	}
@@ -195,15 +233,45 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // Helper function to set the active status of the current pane
-func (m *LayoutModel) setActivePane(isActive bool) {
+func (m *LayoutModel) setActivePane(isActive bool) tea.Cmd {
+	layoutFullHelp := [][]key.Binding{
+		{m.keys.NextPane, m.keys.PrevPane, m.keys.Quit}, // Layout keybindings
+	}
+
 	switch pane := m.panes[m.currentPane].(type) {
 	case *SideBarPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	case *EditorPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	case *ResultPaneModel:
 		pane.isActive = isActive
+		if isActive {
+			return func() tea.Msg {
+				return SetKeyMapMsg{
+					FullHelpKeys:  append(layoutFullHelp, pane.KeyMap()),
+					ShortHelpKeys: append(pane.KeyMap()),
+				}
+			}
+		}
 	}
+
+	return nil
 }
 
 // Application Layout View
