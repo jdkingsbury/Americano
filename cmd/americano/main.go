@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/exec"
 
@@ -20,10 +20,17 @@ func main() {
 		restoreState.Run()
 	}()
 
+	// Added logging to debug file if encounter an error
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
 	p := tea.NewProgram(panes.NewLayoutModel(), tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
-		fmt.Println("Error:", err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }
