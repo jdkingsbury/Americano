@@ -79,21 +79,35 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 	return pane
 }
 
-// NOTE: Temporary Function for testing the table
-func (m *ResultPaneModel) TestResultPaneTable() {
-	columns := []string{"ID", "Name", "Age", "Occupation", "Country"}
+// HandleMsg is used for testing incoming messages for ResultPaneModel
+func (m *ResultPaneModel) HandleMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case drivers.QueryResultMsg:
+		if msg.Error != nil {
+			m.err = msg.Error
+			return m, nil
+		}
+		m.UpdateTable(msg.Columns, msg.Rows)
+		return m, nil
 
-	rows := [][]string{
-		{"1", "Alice", "29", "Engineer", "USA"},
-		{"2", "Bob", "34", "Designer", "UK"},
-		{"3", "Charlie", "22", "Student", "Canada"},
-		{"4", "David", "40", "Manager", "Australia"},
-		{"5", "Eve", "35", "Scientist", "Germany"},
+	case msgtypes.NotificationMsg:
+		m.notification = msg.Notification
+		m.err = nil
+		return m, nil
+
+	case msgtypes.ErrMsg:
+		m.notification = ""
+		m.err = msg.Err
+		return m, nil
 	}
-	m.UpdateTable(columns, rows)
+	return m, nil
 }
 
-// TODO: Look into how we want to display successful and failed messages
+// Used for testing the tables in the result pane
+func (m *ResultPaneModel) Table() table.Model {
+	return m.table
+}
+
 func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 	if len(columns) == 0 {
 		msgtypes.NewNotificationMsg("No columns to display")
