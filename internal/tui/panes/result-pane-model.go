@@ -79,21 +79,11 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 	return pane
 }
 
-// NOTE: Temporary Function for testing the table
-func (m *ResultPaneModel) TestResultPaneTable() {
-	columns := []string{"ID", "Name", "Age", "Occupation", "Country"}
-
-	rows := [][]string{
-		{"1", "Alice", "29", "Engineer", "USA"},
-		{"2", "Bob", "34", "Designer", "UK"},
-		{"3", "Charlie", "22", "Student", "Canada"},
-		{"4", "David", "40", "Manager", "Australia"},
-		{"5", "Eve", "35", "Scientist", "Germany"},
-	}
-	m.UpdateTable(columns, rows)
+// Used for testing the tables in the result pane
+func (m *ResultPaneModel) Table() table.Model {
+	return m.table
 }
 
-// TODO: Look into how we want to display successful and failed messages
 func (m *ResultPaneModel) UpdateTable(columns []string, rowData [][]string) {
 	if len(columns) == 0 {
 		msgtypes.NewNotificationMsg("No columns to display")
