@@ -79,6 +79,30 @@ func NewResultPaneModel(width, height int) *ResultPaneModel {
 	return pane
 }
 
+// HandleMsg is used for testing incoming messages for ResultPaneModel
+func (m *ResultPaneModel) HandleMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case drivers.QueryResultMsg:
+		if msg.Error != nil {
+			m.err = msg.Error
+			return m, nil
+		}
+		m.UpdateTable(msg.Columns, msg.Rows)
+		return m, nil
+
+	case msgtypes.NotificationMsg:
+		m.notification = msg.Notification
+		m.err = nil
+		return m, nil
+
+	case msgtypes.ErrMsg:
+		m.notification = ""
+		m.err = msg.Err
+		return m, nil
+	}
+	return m, nil
+}
+
 // Used for testing the tables in the result pane
 func (m *ResultPaneModel) Table() table.Model {
 	return m.table
