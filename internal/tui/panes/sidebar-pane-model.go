@@ -70,6 +70,16 @@ func NewSideBarPane(width, height int) *SideBarPaneModel {
 	return pane
 }
 
+// Used for testing the current view
+func (m *SideBarPaneModel) CurrentView() SideBarView {
+	return m.currentView
+}
+
+// Used for testing input form
+func (m *SideBarPaneModel) ShowInputForm() bool {
+	return m.showInputForm
+}
+
 func (m *SideBarPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width((m.width / 3) - 10).
