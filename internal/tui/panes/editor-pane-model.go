@@ -46,7 +46,7 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	ti.Placeholder = "Enter SQL Code Here..."
 	ti.CharLimit = 1000
 	ti.ShowLineNumbers = false
-  ti.Prompt = " "
+	ti.Prompt = " "
 
 	pane := &EditorPaneModel{
 		width:    width,
@@ -76,6 +76,10 @@ func (m *EditorPaneModel) updateStyles() {
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(rose))
+}
+
+func (m *EditorPaneModel) Query() string {
+	return m.textarea.Value()
 }
 
 func (m *EditorPaneModel) KeyMap() []key.Binding {
