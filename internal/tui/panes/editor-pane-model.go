@@ -1,6 +1,8 @@
 package panes
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,6 +11,24 @@ import (
 )
 
 /* Handles The SQL Editor Pane*/
+
+var sqlKeywords = map[string]bool{
+	"SELECT": true, "FROM": true, "WHERE": true,
+	"INSERT": true, "UPDATE": true, "DELETE": true,
+	"CREATE": true, "TABLE": true, "JOIN": true,
+	"ON": true,
+}
+
+func highlightSQL(text string) string {
+	words := strings.Split(text, " ")
+
+	for i, word := range words {
+		if sqlKeywords[strings.ToUpper(word)] {
+			words[i] = lipgloss.NewStyle().Foreground(lipgloss.Color(pine)).Bold(true).Render(word)
+		}
+	}
+	return strings.Join(words, " ")
+}
 
 type InsertQueryMsg struct {
 	Query string
@@ -156,5 +176,17 @@ func (m EditorPaneModel) View() string {
 		paneStyle = m.styles
 	}
 
-	return paneStyle.Render(m.textarea.View())
+	// Get the entire rendered view for ensuring we have the desired dimensions
+	textareaView := m.textarea.View()
+
+	// Get the text input to check for highlighting
+	rawText := m.textarea.Value()
+
+	// Use highlight sql text function to highlight text
+	highlightedText := highlightSQL(rawText)
+
+	// Replace the raw text in textarea view with the highlighted text
+	highlightedView := strings.Replace(textareaView, rawText, highlightedText, 1)
+
+	return paneStyle.Render(highlightedView)
 }
