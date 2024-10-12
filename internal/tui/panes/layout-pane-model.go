@@ -101,6 +101,26 @@ func (m *LayoutModel) updatePaneSizes() {
 	m.footer.width = m.width
 }
 
+// Used for checking the current pane in test
+func (m *LayoutModel) CurrentPane() pane {
+	return m.currentPane
+}
+
+// Used in test for getting a slice of all the panes in the layout
+func (m *LayoutModel) Panes() []tea.Model {
+	return m.panes
+}
+
+// Used in test for checking the layout width
+func (m *LayoutModel) Width() int {
+  return m.width
+}
+
+// Used in test for checking the layout height
+func (m *LayoutModel) Height() int {
+  return m.height
+}
+
 func setupEditorPaneForDBConnection(dbURL string, width, height int) (*EditorPaneModel, tea.Cmd) {
 	db, notificationMsg := drivers.ConnectToDatabase(dbURL)
 	if db == nil {
