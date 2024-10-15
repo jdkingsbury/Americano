@@ -127,7 +127,7 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 		cursorRow: 0,
 		cursorCol: 0,
 		err:       nil,
-		focused:   true,
+		focused:   false,
 		db:        db,
 		keys:      newEditorPaneKeymap(),
 	}
@@ -221,14 +221,23 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cursorCol = 0
 		case key.Matches(msg, m.keys.Backspace):
 			if m.cursorCol > 0 {
+        // Deleting character in the middle of the line
 				m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol-1] + m.buffer[m.cursorRow][m.cursorCol:]
 				m.cursorCol--
 			} else if m.cursorRow > 0 {
+        // Save the current line before removing it
+        currentLine := m.buffer[m.cursorRow]
 				prevLine := m.buffer[m.cursorRow-1]
+
+        // Remove the current line from the buffer
 				m.buffer = append(m.buffer[:m.cursorRow], m.buffer[m.cursorRow+1:]...)
+
+        // Move the cursor to the end of the previous line
 				m.cursorRow--
 				m.cursorCol = len(prevLine)
-				m.buffer[m.cursorRow] = prevLine + m.buffer[m.cursorRow]
+
+        // Concatenate the previous line with the current line
+				m.buffer[m.cursorRow] = prevLine + currentLine
 			}
 		default:
 			if isPrintable(msg) {
@@ -256,7 +265,7 @@ func (m *EditorPaneModel) View() string {
 			if m.focused {
 				cursor = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render("|")
 			} else {
-				cursor = lipgloss.NewStyle().Background(lipgloss.Color(text)).Render(" ")
+				cursor = lipgloss.NewStyle().Background(lipgloss.Color(rose)).Render(" ")
 			}
 
 			highlightedLine := highlightSQL(line[:m.cursorCol]) + cursor + highlightSQL(line[m.cursorCol:])
