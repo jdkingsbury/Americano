@@ -34,6 +34,11 @@ func highlightSQL(text string) string {
 	return strings.Join(words, " ")
 }
 
+func isPrintable(keyMsg tea.KeyMsg) bool {
+	s := keyMsg.String()
+	return len(s) == 1 && s[0] >= 32 && s[0] <= 126
+}
+
 type InsertQueryMsg struct {
 	Query string
 }
@@ -55,6 +60,7 @@ type EditorPaneModel struct {
 
 type editorKeyMap struct {
 	ExecuteQuery key.Binding
+	Focus        key.Binding
 	Up           key.Binding
 	Down         key.Binding
 	Left         key.Binding
@@ -68,6 +74,10 @@ func newEditorPaneKeymap() editorKeyMap {
 		ExecuteQuery: key.NewBinding(
 			key.WithKeys("ctrl+e"),
 			key.WithHelp("ctrl+e", "execute query"),
+		),
+		Focus: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "toggle focus"),
 		),
 		Up: key.NewBinding(
 			key.WithKeys("up"),
@@ -105,6 +115,7 @@ func (m *EditorPaneModel) KeyMap() []key.Binding {
 		m.keys.Right,
 		m.keys.Enter,
 		m.keys.Backspace,
+		m.keys.Focus,
 	}
 }
 
@@ -161,6 +172,14 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		if key.Matches(msg, m.keys.Focus) {
+			m.focused = !m.focused
+			return m, nil
+		}
+
+		if !m.focused {
+			return m, nil
+		}
 		switch {
 		case key.Matches(msg, m.keys.ExecuteQuery):
 			query := strings.Join(m.buffer, "\n")
@@ -209,8 +228,10 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.buffer[m.cursorRow] = prevLine + m.buffer[m.cursorRow]
 			}
 		default:
-			m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol] + msg.String() + m.buffer[m.cursorRow][m.cursorCol:]
-			m.cursorCol++
+			if isPrintable(msg) {
+				m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol] + msg.String() + m.buffer[m.cursorRow][m.cursorCol:]
+				m.cursorCol++
+			}
 		}
 	}
 
