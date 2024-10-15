@@ -19,19 +19,27 @@ var sqlKeywords = map[string]bool{
 }
 
 func highlightSQL(text string) string {
-	words := strings.Split(text, " ")
+	var builder strings.Builder
+	words := strings.Fields(text)
 
 	for i, word := range words {
 		upperWord := strings.ToUpper(word)
-		if sqlKeywords[upperWord] {
-			words[i] = lipgloss.NewStyle().Foreground(lipgloss.Color(pine)).Bold(true).Render(word)
-		} else if strings.HasPrefix(word, "'") && strings.HasSuffix(word, "'") {
-			words[i] = lipgloss.NewStyle().Foreground(lipgloss.Color(gold)).Bold(true).Render(word)
-		} else if strings.HasPrefix(word, "--") {
-			words[i] = lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Bold(true).Render(word)
+		if i > 0 {
+			builder.WriteString(" ")
+		}
+
+		switch {
+		case sqlKeywords[upperWord]:
+			builder.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(pine)).Bold(true).Render(word))
+		case strings.HasPrefix(word, "'") && strings.HasSuffix(word, "'"):
+			builder.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(gold)).Bold(true).Render(word))
+		case strings.HasPrefix(word, "--"):
+			builder.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(muted)).Bold(true).Render(word))
+		default:
+			builder.WriteString(word)
 		}
 	}
-	return strings.Join(words, " ")
+	return builder.String()
 }
 
 func isPrintable(keyMsg tea.KeyMsg) bool {
@@ -151,9 +159,23 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
-func (m *EditorPaneModel) resizeTextArea() {
-	m.width = m.width - 42
-	m.height = m.height - 17
+func (m *EditorPaneModel) moveCursorVertically(direction int) {
+	m.cursorRow += direction
+	if m.cursorRow < 0 {
+		m.cursorRow = 0
+	} else if m.cursorRow >= len(m.buffer) {
+		m.cursorRow = len(m.buffer) - 1
+	}
+	m.ensureCursorInBounds()
+}
+
+func (m *EditorPaneModel) ensureCursorInBounds() {
+	if m.cursorRow >= len(m.buffer) {
+		m.cursorRow = len(m.buffer) - 1
+	}
+	if m.cursorCol > len(m.buffer[m.cursorRow]) {
+		m.cursorCol = len(m.buffer[m.cursorRow])
+	}
 }
 
 func (m *EditorPaneModel) Init() tea.Cmd {
@@ -190,15 +212,9 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.db.ExecuteQuery(query)
 			}
 		case key.Matches(msg, m.keys.Up):
-			if m.cursorRow > 0 {
-				m.cursorRow--
-				m.cursorCol = min(m.cursorCol, len(m.buffer[m.cursorRow]))
-			}
+			m.moveCursorVertically(-1)
 		case key.Matches(msg, m.keys.Down):
-			if m.cursorRow < len(m.buffer)-1 {
-				m.cursorRow++
-				m.cursorCol = min(m.cursorCol, len(m.buffer[m.cursorRow]))
-			}
+			m.moveCursorVertically(1)
 		case key.Matches(msg, m.keys.Left):
 			if m.cursorCol > 0 {
 				m.cursorCol--
@@ -221,22 +237,22 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cursorCol = 0
 		case key.Matches(msg, m.keys.Backspace):
 			if m.cursorCol > 0 {
-        // Deleting character in the middle of the line
+				// Deleting character in the middle of the line
 				m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol-1] + m.buffer[m.cursorRow][m.cursorCol:]
 				m.cursorCol--
 			} else if m.cursorRow > 0 {
-        // Save the current line before removing it
-        currentLine := m.buffer[m.cursorRow]
+				// Save the current line before removing it
+				currentLine := m.buffer[m.cursorRow]
 				prevLine := m.buffer[m.cursorRow-1]
 
-        // Remove the current line from the buffer
+				// Remove the current line from the buffer
 				m.buffer = append(m.buffer[:m.cursorRow], m.buffer[m.cursorRow+1:]...)
 
-        // Move the cursor to the end of the previous line
+				// Move the cursor to the end of the previous line
 				m.cursorRow--
 				m.cursorCol = len(prevLine)
 
-        // Concatenate the previous line with the current line
+				// Concatenate the previous line with the current line
 				m.buffer[m.cursorRow] = prevLine + currentLine
 			}
 		default:

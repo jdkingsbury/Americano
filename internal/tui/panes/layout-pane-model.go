@@ -90,7 +90,7 @@ func (m *LayoutModel) updatePaneSizes() {
 		case *EditorPaneModel:
 			pane.width = m.width
 			pane.height = m.height
-			pane.resizeTextArea()
+			pane.updateStyles()
 		case *ResultPaneModel:
 			pane.width = m.width
 			pane.height = m.height
