@@ -52,6 +52,10 @@ func isPrintable(keyMsg tea.KeyMsg) bool {
 	return len(s) == 1 && s[0] >= 32 && s[0] <= 126
 }
 
+func isWhiteSpace(ch byte) bool {
+  return ch == ' ' || ch == '\t' || ch == '\n'
+}
+
 type InsertQueryMsg struct {
 	Query string
 }
@@ -188,6 +192,35 @@ func (m *EditorPaneModel) updateStyles() {
 		BorderForeground(lipgloss.Color(rose))
 }
 
+func (m *EditorPaneModel) moveCursorForwardWord() {
+  line := m.buffer[m.cursorRow]
+
+  for m.cursorCol < len(line) && !isWhiteSpace(line[m.cursorCol]) {
+    m.cursorCol++
+  }
+
+  for m.cursorCol < len(line) && isWhiteSpace(line[m.cursorCol]) {
+    m.cursorCol++
+  }
+}
+
+func (m *EditorPaneModel) moveCursorBackwardWord() {
+  line := m.buffer[m.cursorRow]
+
+  if m.cursorCol > 0 {
+    m.cursorCol--
+  }
+
+  for m.cursorCol > 0 && isWhiteSpace(line[m.cursorCol]) {
+    m.cursorCol--
+  }
+
+  for m.cursorCol > 0 && !isWhiteSpace(line[m.cursorCol-1]) {
+    m.cursorCol--
+  }
+}
+
+
 func (m *EditorPaneModel) moveCursorVertically(direction int) {
 	m.cursorRow += direction
 	if m.cursorRow < 0 {
@@ -232,6 +265,12 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, m.keys.InsertMode):
 				m.mode = InsertMode
 				return m, nil
+      // Move forward a word
+      case msg.String() == "w":
+        m.moveCursorForwardWord()
+      // Move backward a word
+      case msg.String() == "b":
+        m.moveCursorBackwardWord()
 			case key.Matches(msg, m.keys.Up):
 				m.moveCursorVertically(-1)
 			case key.Matches(msg, m.keys.Down):
