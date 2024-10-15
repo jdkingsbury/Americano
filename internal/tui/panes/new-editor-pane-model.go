@@ -9,6 +9,11 @@ import (
 	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
+const (
+	NormalMode = iota
+	InsertMode
+)
+
 var sqlKeywords = map[string]bool{
 	"SELECT": true, "FROM": true, "WHERE": true,
 	"INSERT": true, "UPDATE": true, "DELETE": true,
@@ -60,21 +65,26 @@ type EditorPaneModel struct {
 	cursorRow    int
 	cursorCol    int
 	err          error
-	focused      bool
 	isActive     bool
+	mode         int
 	db           drivers.Database
 	keys         editorKeyMap
 }
 
 type editorKeyMap struct {
 	ExecuteQuery key.Binding
-	Focus        key.Binding
+	NormalMode   key.Binding
+	InsertMode   key.Binding
 	Up           key.Binding
 	Down         key.Binding
 	Left         key.Binding
 	Right        key.Binding
 	Enter        key.Binding
 	Backspace    key.Binding
+	ArrowUp      key.Binding
+	ArrowDown    key.Binding
+	ArrowLeft    key.Binding
+	ArrowRight   key.Binding
 }
 
 func newEditorPaneKeymap() editorKeyMap {
@@ -83,24 +93,28 @@ func newEditorPaneKeymap() editorKeyMap {
 			key.WithKeys("ctrl+e"),
 			key.WithHelp("ctrl+e", "execute query"),
 		),
-		Focus: key.NewBinding(
+		NormalMode: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "toggle focus"),
+			key.WithHelp("esc", "enter normal mode"),
+		),
+		InsertMode: key.NewBinding(
+			key.WithKeys("i"),
+			key.WithHelp("i", "enter insert mode"),
 		),
 		Up: key.NewBinding(
-			key.WithKeys("up"),
+			key.WithKeys("up", "k"),
 			key.WithHelp("↑", "move up"),
 		),
 		Down: key.NewBinding(
-			key.WithKeys("down"),
+			key.WithKeys("down", "j"),
 			key.WithHelp("↓", "move down"),
 		),
 		Left: key.NewBinding(
-			key.WithKeys("left"),
+			key.WithKeys("left", "h"),
 			key.WithHelp("←", "move left"),
 		),
 		Right: key.NewBinding(
-			key.WithKeys("right"),
+			key.WithKeys("right", "l"),
 			key.WithHelp("→", "move right"),
 		),
 		Enter: key.NewBinding(
@@ -110,6 +124,22 @@ func newEditorPaneKeymap() editorKeyMap {
 		Backspace: key.NewBinding(
 			key.WithKeys("backspace"),
 			key.WithHelp("backspace", "delete character"),
+		),
+		ArrowUp: key.NewBinding(
+			key.WithKeys("up"),
+			key.WithHelp("↑", "move up"),
+		),
+		ArrowDown: key.NewBinding(
+			key.WithKeys("down"),
+			key.WithHelp("↓", "move down"),
+		),
+		ArrowLeft: key.NewBinding(
+			key.WithKeys("left"),
+			key.WithHelp("←", "move left"),
+		),
+		ArrowRight: key.NewBinding(
+			key.WithKeys("right"),
+			key.WithHelp("→", "move right"),
 		),
 	}
 }
@@ -121,9 +151,8 @@ func (m *EditorPaneModel) KeyMap() []key.Binding {
 		m.keys.Down,
 		m.keys.Left,
 		m.keys.Right,
-		m.keys.Enter,
-		m.keys.Backspace,
-		m.keys.Focus,
+		m.keys.NormalMode,
+		m.keys.InsertMode,
 	}
 }
 
@@ -135,9 +164,9 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 		cursorRow: 0,
 		cursorCol: 0,
 		err:       nil,
-		focused:   false,
 		db:        db,
 		keys:      newEditorPaneKeymap(),
+		mode:      NormalMode,
 	}
 
 	pane.updateStyles()
@@ -196,69 +225,87 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if key.Matches(msg, m.keys.Focus) {
-			m.focused = !m.focused
-			return m, tea.Batch(cmds...)
-		}
+		switch m.mode {
 
-		if !m.focused {
-			return m, nil
-		}
+		case NormalMode:
+			switch {
+			case key.Matches(msg, m.keys.InsertMode):
+				m.mode = InsertMode
+				return m, nil
+			case key.Matches(msg, m.keys.Up):
+				m.moveCursorVertically(-1)
+			case key.Matches(msg, m.keys.Down):
+				m.moveCursorVertically(1)
+			case key.Matches(msg, m.keys.Left):
+				if m.cursorCol > 0 {
+					m.cursorCol--
+				} else if m.cursorRow > 0 {
+					m.cursorRow--
+					m.cursorCol = len(m.buffer[m.cursorRow])
+				}
+			case key.Matches(msg, m.keys.Right):
+				if m.cursorCol < len(m.buffer[m.cursorRow]) {
+					m.cursorCol++
+				} else if m.cursorRow < len(m.buffer)-1 {
+					m.cursorRow++
+					m.cursorCol = 0
+				}
+			}
 
-		switch {
-		case key.Matches(msg, m.keys.ExecuteQuery):
-			query := strings.Join(m.buffer, "\n")
-			return m, func() tea.Msg {
-				return m.db.ExecuteQuery(query)
-			}
-		case key.Matches(msg, m.keys.Up):
-			m.moveCursorVertically(-1)
-		case key.Matches(msg, m.keys.Down):
-			m.moveCursorVertically(1)
-		case key.Matches(msg, m.keys.Left):
-			if m.cursorCol > 0 {
-				m.cursorCol--
-			} else if m.cursorRow > 0 {
-				m.cursorRow--
-				m.cursorCol = len(m.buffer[m.cursorRow])
-			}
-		case key.Matches(msg, m.keys.Right):
-			if m.cursorCol < len(m.buffer[m.cursorRow]) {
-				m.cursorCol++
-			} else if m.cursorRow < len(m.buffer)-1 {
+		case InsertMode:
+			switch {
+			case key.Matches(msg, m.keys.NormalMode):
+				m.mode = NormalMode
+				return m, nil
+			case key.Matches(msg, m.keys.Enter):
+				currentLine := m.buffer[m.cursorRow]
+				m.buffer[m.cursorRow] = currentLine[:m.cursorCol]
+				m.buffer = append(m.buffer[:m.cursorRow+1], append([]string{currentLine[m.cursorCol:]}, m.buffer[m.cursorRow+1:]...)...)
 				m.cursorRow++
 				m.cursorCol = 0
-			}
-		case key.Matches(msg, m.keys.Enter):
-			currentLine := m.buffer[m.cursorRow]
-			m.buffer[m.cursorRow] = currentLine[:m.cursorCol]
-			m.buffer = append(m.buffer[:m.cursorRow+1], append([]string{currentLine[m.cursorCol:]}, m.buffer[m.cursorRow+1:]...)...)
-			m.cursorRow++
-			m.cursorCol = 0
-		case key.Matches(msg, m.keys.Backspace):
-			if m.cursorCol > 0 {
-				// Deleting character in the middle of the line
-				m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol-1] + m.buffer[m.cursorRow][m.cursorCol:]
-				m.cursorCol--
-			} else if m.cursorRow > 0 {
-				// Save the current line before removing it
-				currentLine := m.buffer[m.cursorRow]
-				prevLine := m.buffer[m.cursorRow-1]
+			case key.Matches(msg, m.keys.Backspace):
+				if m.cursorCol > 0 {
+					// Deleting character in the middle of the line
+					m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol-1] + m.buffer[m.cursorRow][m.cursorCol:]
+					m.cursorCol--
+				} else if m.cursorRow > 0 {
+					// Save the current line before removing it
+					currentLine := m.buffer[m.cursorRow]
+					prevLine := m.buffer[m.cursorRow-1]
 
-				// Remove the current line from the buffer
-				m.buffer = append(m.buffer[:m.cursorRow], m.buffer[m.cursorRow+1:]...)
+					// Remove the current line from the buffer
+					m.buffer = append(m.buffer[:m.cursorRow], m.buffer[m.cursorRow+1:]...)
 
-				// Move the cursor to the end of the previous line
-				m.cursorRow--
-				m.cursorCol = len(prevLine)
+					// Move the cursor to the end of the previous line
+					m.cursorRow--
+					m.cursorCol = len(prevLine)
 
-				// Concatenate the previous line with the current line
-				m.buffer[m.cursorRow] = prevLine + currentLine
-			}
-		default:
-			if isPrintable(msg) {
-				m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol] + msg.String() + m.buffer[m.cursorRow][m.cursorCol:]
-				m.cursorCol++
+					// Concatenate the previous line with the current line
+					m.buffer[m.cursorRow] = prevLine + currentLine
+				}
+			case key.Matches(msg, m.keys.ArrowUp):
+				m.moveCursorVertically(-1)
+			case key.Matches(msg, m.keys.ArrowDown):
+				m.moveCursorVertically(1)
+			case key.Matches(msg, m.keys.ArrowLeft):
+				if m.cursorCol > 0 {
+					m.cursorCol--
+				} else if m.cursorRow > 0 {
+					m.cursorRow--
+					m.cursorCol = len(m.buffer[m.cursorRow])
+				}
+			case key.Matches(msg, m.keys.ArrowRight):
+				if m.cursorCol < len(m.buffer[m.cursorRow]) {
+					m.cursorCol++
+				} else if m.cursorRow < len(m.buffer)-1 {
+					m.cursorRow++
+					m.cursorCol = 0
+				}
+			default:
+				if isPrintable(msg) {
+					m.buffer[m.cursorRow] = m.buffer[m.cursorRow][:m.cursorCol] + msg.String() + m.buffer[m.cursorRow][m.cursorCol:]
+					m.cursorCol++
+				}
 			}
 		}
 	}
@@ -278,10 +325,10 @@ func (m *EditorPaneModel) View() string {
 	for i, line := range m.buffer {
 		if i == m.cursorRow {
 			cursor := ""
-			if m.focused {
+			if m.mode == InsertMode {
 				cursor = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render("|")
 			} else {
-				cursor = lipgloss.NewStyle().Background(lipgloss.Color(rose)).Render(" ")
+				cursor = lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(rose)).Render(" ")
 			}
 
 			highlightedLine := highlightSQL(line[:m.cursorCol]) + cursor + highlightSQL(line[m.cursorCol:])

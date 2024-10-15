@@ -113,12 +113,12 @@ func (m *LayoutModel) Panes() []tea.Model {
 
 // Used in test for checking the layout width
 func (m *LayoutModel) Width() int {
-  return m.width
+	return m.width
 }
 
 // Used in test for checking the layout height
 func (m *LayoutModel) Height() int {
-  return m.height
+	return m.height
 }
 
 func setupEditorPaneForDBConnection(dbURL string, width, height int) (*EditorPaneModel, tea.Cmd) {
@@ -217,7 +217,7 @@ func (m *LayoutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Check if using the editor pane
 		} else if m.currentPane == EditorPane {
 			editorPane := m.panes[EditorPane].(*EditorPaneModel)
-			if editorPane.focused {
+			if editorPane.mode == InsertMode {
 				break
 			}
 		}
