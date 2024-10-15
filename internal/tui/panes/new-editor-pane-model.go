@@ -127,7 +127,7 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 		cursorRow: 0,
 		cursorCol: 0,
 		err:       nil,
-		focused:   false,
+		focused:   true,
 		db:        db,
 		keys:      newEditorPaneKeymap(),
 	}
@@ -161,6 +161,8 @@ func (m *EditorPaneModel) Init() tea.Cmd {
 }
 
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -174,12 +176,13 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keys.Focus) {
 			m.focused = !m.focused
-			return m, nil
+			return m, tea.Batch(cmds...)
 		}
 
 		if !m.focused {
 			return m, nil
 		}
+
 		switch {
 		case key.Matches(msg, m.keys.ExecuteQuery):
 			query := strings.Join(m.buffer, "\n")
@@ -235,7 +238,7 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	return m, tea.Batch(cmds...)
 }
 
 func (m *EditorPaneModel) View() string {
@@ -249,7 +252,14 @@ func (m *EditorPaneModel) View() string {
 	var builder strings.Builder
 	for i, line := range m.buffer {
 		if i == m.cursorRow {
-			highlightedLine := highlightSQL(line[:m.cursorCol]) + lipgloss.NewStyle().Background(lipgloss.Color(subtle)).Render(" ") + highlightSQL(line[m.cursorCol:])
+			cursor := ""
+			if m.focused {
+				cursor = lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render("|")
+			} else {
+				cursor = lipgloss.NewStyle().Background(lipgloss.Color(text)).Render(" ")
+			}
+
+			highlightedLine := highlightSQL(line[:m.cursorCol]) + cursor + highlightSQL(line[m.cursorCol:])
 			builder.WriteString(highlightedLine)
 		} else {
 			builder.WriteString(highlightSQL(line))
