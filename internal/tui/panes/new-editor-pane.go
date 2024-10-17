@@ -109,7 +109,8 @@ func (m *EditorPaneModel) updateStyles() {
 		Width(m.width - 42).
 		Height(m.height - 17).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(iris))
+		BorderForeground(lipgloss.Color(iris)).
+    Faint(true)
 
 	m.activeStyles = lipgloss.NewStyle().
 		Width(m.width - 42).
@@ -257,23 +258,27 @@ func (m *EditorPaneModel) View() string {
 	for i, line := range m.buffer {
 		if i == m.cursorRow {
 			// Insert cursor into the line at the correct column
-			if m.mode == NormalMode {
-				cursor := "█" // Normal mode cursor
-				if m.cursorCol < len(line) {
-					output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol+1:])
-				} else {
-					output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+			if m.isActive {
+				if m.mode == NormalMode {
+					cursor := "█" // Normal mode cursor
+					if m.cursorCol < len(line) {
+						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol+1:])
+					} else {
+						output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+					}
 				}
-			}
 
-			if m.mode == InsertMode {
-				cursor := "|" // Insert mode cursorCol
-				if m.cursorCol < len(line) {
-					output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol:])
-				} else {
-					output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+				if m.mode == InsertMode {
+					cursor := "|" // Insert mode cursor
+					if m.cursorCol < len(line) {
+						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol:])
+					} else {
+						output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+					}
 				}
-			}
+			} else {
+        output.WriteString(line)
+      }
 		} else {
 			output.WriteString(line)
 		}
