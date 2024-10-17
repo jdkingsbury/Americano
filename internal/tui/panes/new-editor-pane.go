@@ -137,6 +137,7 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Join all lines in the buffer to get the full sql query code
 			query := strings.Join(m.buffer, "\n")
 			return m, func() tea.Msg {
+				m.isActive = false
 				return m.db.ExecuteQuery(query)
 			}
 
