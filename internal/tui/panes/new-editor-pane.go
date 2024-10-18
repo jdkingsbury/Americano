@@ -104,6 +104,111 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	return pane
 }
 
+// Helper function for determining the min
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Helper Function to check if they are word characters
+func isWordChar(ch byte) bool {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_'
+}
+
+// Function for moving forward by a word
+
+func (m *EditorPaneModel) moveCursorForwardByWord(row, col int) (int, int) {
+	if row >= len(m.buffer) {
+		return row, col
+	}
+
+	line := m.buffer[row]
+
+	// If at the end of the line, move to the next line
+	if col >= len(line) {
+		return m.moveCursorForwardByWord(row+1, 0)
+	}
+
+	// Skip over non character words
+	for col < len(line) && !isWordChar(line[col]) {
+		col++
+	}
+
+	// Skip over word character words
+	for col < len(line) && isWordChar(line[col]) {
+		col++
+	}
+
+	// If at the end of the line, move to the next line
+	if col >= len(line) {
+		return m.moveCursorForwardByWord(row+1, 0)
+	}
+
+	return row, col
+}
+
+// func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
+// 	// Skip over non word characters
+// 	for col < len(line) && !isWordChar(line[col]) {
+// 		col++
+// 	}
+//
+// 	// Skip over word characters
+// 	for col < len(line) && isWordChar(line[col]) {
+// 		col++
+// 	}
+//
+// 	return col
+// }
+
+func (m *EditorPaneModel) moveCursorBackwardByWord(row, col int) (int, int) {
+	if row < 0 {
+		return row, col
+	}
+
+	line := m.buffer[row]
+
+	if col <= 0 {
+		if row > 0 {
+			return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
+		}
+		return row, col
+	}
+
+	// Skip over non word characters
+	for col > 0 && !isWordChar(line[col-1]) {
+		col--
+	}
+
+	// Skip over word characters
+	for col > 0 && isWordChar(line[col-1]) {
+		col--
+	}
+
+	if col <= 0 && row > 0 {
+		return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
+	}
+
+	return row, col
+}
+
+// Function for moving backward by a word
+// func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
+// 	// Skip over non word characters
+// 	for col > 0 && !isWordChar(line[col-1]) {
+// 		col--
+// 	}
+//
+// 	// Skip over word characters
+// 	for col > 0 && isWordChar(line[col-1]) {
+// 		col--
+// 	}
+//
+// 	return col
+// }
+
 func (m *EditorPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
 		Width(m.width - 42).
@@ -152,6 +257,14 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Normal Mode Commands
 		case m.mode == NormalMode:
 			switch {
+
+			// Move forward by a word
+			case msg.String() == "w":
+				m.cursorRow, m.cursorCol = m.moveCursorForwardByWord(m.cursorRow, m.cursorCol)
+
+			// Move backward by a word
+			case msg.String() == "b":
+				m.cursorRow, m.cursorCol = m.moveCursorBackwardByWord(m.cursorRow, m.cursorCol)
 
 			// Up
 			case key.Matches(msg, m.keys.Up) || msg.String() == "k":
@@ -321,11 +434,4 @@ func (m *EditorPaneModel) View() string {
 	}
 
 	return paneStyle.Render(output.String())
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
