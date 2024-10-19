@@ -2,12 +2,16 @@ package panes
 
 import (
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jdkingsbury/americano/internal/drivers"
 )
+
+// TODO: Fix to ensure move forward and backward to always ends on a word
+// Add the functionality to ensure code works on multiline
 
 const (
 	NormalMode = iota
@@ -31,6 +35,7 @@ type EditorPaneModel struct {
 	mode         int
 	db           drivers.Database
 	keys         editorKeyMap
+	blinkOn      bool
 }
 
 type editorKeyMap struct {
@@ -104,6 +109,14 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	return pane
 }
 
+type blinkMsg struct{}
+
+func blinkCmd() tea.Cmd {
+	return tea.Tick(time.Millisecond*530, func(t time.Time) tea.Msg {
+		return blinkMsg{}
+	})
+}
+
 // Helper function for determining the min
 func min(a, b int) int {
 	if a < b {
@@ -118,37 +131,6 @@ func isWordChar(ch byte) bool {
 }
 
 // Function for moving forward by a word
-
-// func (m *EditorPaneModel) moveCursorForwardByWord(row, col int) (int, int) {
-// 	if row >= len(m.buffer) {
-// 		return row, col
-// 	}
-//
-// 	line := m.buffer[row]
-//
-// 	// If at the end of the line, move to the next line
-// 	if col >= len(line) {
-// 		return m.moveCursorForwardByWord(row+1, 0)
-// 	}
-//
-// 	// Skip over non character words
-// 	for col < len(line) && !isWordChar(line[col]) {
-// 		col++
-// 	}
-//
-// 	// Skip over word character words
-// 	for col < len(line) && isWordChar(line[col]) {
-// 		col++
-// 	}
-//
-// 	// If at the end of the line, move to the next line
-// 	if col >= len(line) {
-// 		return m.moveCursorForwardByWord(row+1, 0)
-// 	}
-//
-// 	return row, col
-// }
-
 func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 	// Skip over non word characters
 	for col < len(line) && !isWordChar(line[col]) {
@@ -162,37 +144,6 @@ func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 
 	return col
 }
-
-// func (m *EditorPaneModel) moveCursorBackwardByWord(row, col int) (int, int) {
-// 	if row < 0 {
-// 		return row, col
-// 	}
-//
-// 	line := m.buffer[row]
-//
-// 	if col <= 0 {
-// 		if row > 0 {
-// 			return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
-// 		}
-// 		return row, col
-// 	}
-//
-// 	// Skip over non word characters
-// 	for col > 0 && !isWordChar(line[col-1]) {
-// 		col--
-// 	}
-//
-// 	// Skip over word characters
-// 	for col > 0 && isWordChar(line[col-1]) {
-// 		col--
-// 	}
-//
-// 	if col <= 0 && row > 0 {
-// 		return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
-// 	}
-//
-// 	return row, col
-// }
 
 // Function for moving backward by a word
 func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
@@ -225,7 +176,7 @@ func (m *EditorPaneModel) updateStyles() {
 }
 
 func (m *EditorPaneModel) Init() tea.Cmd {
-	return nil
+	return blinkCmd()
 }
 
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -234,6 +185,13 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.updateStyles()
+
+	case blinkMsg:
+		m.blinkOn = !m.blinkOn
+		if m.mode == InsertMode {
+			return m, blinkCmd()
+		}
+		return m, nil
 
 	case tea.KeyMsg:
 		switch {
@@ -249,10 +207,14 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Switch to Normal Mode
 		case msg.String() == "i" && m.mode == NormalMode:
 			m.mode = InsertMode
+			m.blinkOn = true
+			return m, blinkCmd()
 
 			// Switch to Insert Mode
 		case msg.String() == "esc" && m.mode == InsertMode:
 			m.mode = NormalMode
+			m.blinkOn = false
+			return m, nil
 
 			// Normal Mode Commands
 		case m.mode == NormalMode:
@@ -399,8 +361,7 @@ func (m *EditorPaneModel) View() string {
 		if i == m.cursorRow {
 			// Render if the pane is active
 			if m.isActive {
-
-				cursor := "█" 
+				cursor := "█"
 
 				// Render for Normal Mode
 				if m.mode == NormalMode {
@@ -414,12 +375,16 @@ func (m *EditorPaneModel) View() string {
 
 				// Render for Insert Mode
 				if m.mode == InsertMode {
-					// Insert cursor into the line at the correct column
-					if m.cursorCol < len(line) {
-            charUnderCursor := string(line[m.cursorCol])
-						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:])
+					if m.blinkOn {
+						// Insert cursor into the line at the correct column
+						if m.cursorCol < len(line) {
+							charUnderCursor := string(line[m.cursorCol])
+							output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:])
+						} else {
+							output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+						}
 					} else {
-						output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+						output.WriteString(line)
 					}
 				}
 				// Render if the pane is inactive
