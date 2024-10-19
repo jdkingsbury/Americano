@@ -119,83 +119,64 @@ func isWordChar(ch byte) bool {
 
 // Function for moving forward by a word
 
-func (m *EditorPaneModel) moveCursorForwardByWord(row, col int) (int, int) {
-	if row >= len(m.buffer) {
-		return row, col
-	}
-
-	line := m.buffer[row]
-
-	// If at the end of the line, move to the next line
-	if col >= len(line) {
-		return m.moveCursorForwardByWord(row+1, 0)
-	}
-
-	// Skip over non character words
-	for col < len(line) && !isWordChar(line[col]) {
-		col++
-	}
-
-	// Skip over word character words
-	for col < len(line) && isWordChar(line[col]) {
-		col++
-	}
-
-	// If at the end of the line, move to the next line
-	if col >= len(line) {
-		return m.moveCursorForwardByWord(row+1, 0)
-	}
-
-	return row, col
-}
-
-// func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
-// 	// Skip over non word characters
+// func (m *EditorPaneModel) moveCursorForwardByWord(row, col int) (int, int) {
+// 	if row >= len(m.buffer) {
+// 		return row, col
+// 	}
+//
+// 	line := m.buffer[row]
+//
+// 	// If at the end of the line, move to the next line
+// 	if col >= len(line) {
+// 		return m.moveCursorForwardByWord(row+1, 0)
+// 	}
+//
+// 	// Skip over non character words
 // 	for col < len(line) && !isWordChar(line[col]) {
 // 		col++
 // 	}
 //
-// 	// Skip over word characters
+// 	// Skip over word character words
 // 	for col < len(line) && isWordChar(line[col]) {
 // 		col++
 // 	}
 //
-// 	return col
+// 	// If at the end of the line, move to the next line
+// 	if col >= len(line) {
+// 		return m.moveCursorForwardByWord(row+1, 0)
+// 	}
+//
+// 	return row, col
 // }
 
-func (m *EditorPaneModel) moveCursorBackwardByWord(row, col int) (int, int) {
-	if row < 0 {
-		return row, col
-	}
-
-	line := m.buffer[row]
-
-	if col <= 0 {
-		if row > 0 {
-			return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
-		}
-		return row, col
-	}
-
+func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 	// Skip over non word characters
-	for col > 0 && !isWordChar(line[col-1]) {
-		col--
+	for col < len(line) && !isWordChar(line[col]) {
+		col++
 	}
 
 	// Skip over word characters
-	for col > 0 && isWordChar(line[col-1]) {
-		col--
+	for col < len(line) && isWordChar(line[col]) {
+		col++
 	}
 
-	if col <= 0 && row > 0 {
-		return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
-	}
-
-	return row, col
+	return col
 }
 
-// Function for moving backward by a word
-// func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
+// func (m *EditorPaneModel) moveCursorBackwardByWord(row, col int) (int, int) {
+// 	if row < 0 {
+// 		return row, col
+// 	}
+//
+// 	line := m.buffer[row]
+//
+// 	if col <= 0 {
+// 		if row > 0 {
+// 			return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
+// 		}
+// 		return row, col
+// 	}
+//
 // 	// Skip over non word characters
 // 	for col > 0 && !isWordChar(line[col-1]) {
 // 		col--
@@ -206,8 +187,27 @@ func (m *EditorPaneModel) moveCursorBackwardByWord(row, col int) (int, int) {
 // 		col--
 // 	}
 //
-// 	return col
+// 	if col <= 0 && row > 0 {
+// 		return m.moveCursorBackwardByWord(row-1, len(m.buffer[row-1]))
+// 	}
+//
+// 	return row, col
 // }
+
+// Function for moving backward by a word
+func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
+	// Skip over non word characters
+	for col > 0 && !isWordChar(line[col-1]) {
+		col--
+	}
+
+	// Skip over word characters
+	for col > 0 && isWordChar(line[col-1]) {
+		col--
+	}
+
+	return col
+}
 
 func (m *EditorPaneModel) updateStyles() {
 	m.styles = lipgloss.NewStyle().
@@ -260,11 +260,13 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Move forward by a word
 			case msg.String() == "w":
-				m.cursorRow, m.cursorCol = m.moveCursorForwardByWord(m.cursorRow, m.cursorCol)
+				m.cursorCol = m.moveCursorForwardByWord(m.buffer[m.cursorRow], m.cursorCol)
+				// m.cursorRow, m.cursorCol = m.moveCursorForwardByWord(m.cursorRow, m.cursorCol)
 
 			// Move backward by a word
 			case msg.String() == "b":
-				m.cursorRow, m.cursorCol = m.moveCursorBackwardByWord(m.cursorRow, m.cursorCol)
+				m.cursorCol = m.moveCursorBackwardByWord(m.buffer[m.cursorRow], m.cursorCol)
+				// m.cursorRow, m.cursorCol = m.moveCursorBackwardByWord(m.cursorRow, m.cursorCol)
 
 			// Up
 			case key.Matches(msg, m.keys.Up) || msg.String() == "k":
@@ -398,9 +400,10 @@ func (m *EditorPaneModel) View() string {
 			// Render if the pane is active
 			if m.isActive {
 
+				cursor := "█" 
+
 				// Render for Normal Mode
 				if m.mode == NormalMode {
-					cursor := "█" // Normal mode cursor
 					// Insert cursor into the line at the correct column
 					if m.cursorCol < len(line) {
 						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol+1:])
@@ -411,10 +414,10 @@ func (m *EditorPaneModel) View() string {
 
 				// Render for Insert Mode
 				if m.mode == InsertMode {
-					cursor := "|" // Insert mode cursor
 					// Insert cursor into the line at the correct column
 					if m.cursorCol < len(line) {
-						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol:])
+            charUnderCursor := string(line[m.cursorCol])
+						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:])
 					} else {
 						output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
 					}
