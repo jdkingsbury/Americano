@@ -12,6 +12,7 @@ import (
 // TODO: Fix to ensure move forward and backward to always ends on a word
 // Add the functionality to ensure code works on multiline
 // Work on adding cursor blinking when in inset mode
+// Work on move forward and backward a word to ensure that we always end up on the first character of a word
 
 const (
 	NormalMode = iota
@@ -116,15 +117,38 @@ func min(a, b int) int {
 	return b
 }
 
+var wordCharSet = map[byte]struct{}{
+	'a': {}, 'b': {}, 'c': {}, 'd': {}, 'e': {}, 'f': {}, 'g': {},
+	'h': {}, 'i': {}, 'j': {}, 'k': {}, 'l': {}, 'm': {}, 'n': {},
+	'o': {}, 'p': {}, 'q': {}, 'r': {}, 's': {}, 't': {}, 'u': {},
+	'v': {}, 'w': {}, 'x': {}, 'y': {}, 'z': {},
+	'A': {}, 'B': {}, 'C': {}, 'D': {}, 'E': {}, 'F': {}, 'G': {},
+	'H': {}, 'I': {}, 'J': {}, 'K': {}, 'L': {}, 'M': {}, 'N': {},
+	'O': {}, 'P': {}, 'Q': {}, 'R': {}, 'S': {}, 'T': {}, 'U': {},
+	'V': {}, 'W': {}, 'X': {}, 'Y': {}, 'Z': {},
+	'0': {}, '1': {}, '2': {}, '3': {}, '4': {}, '5': {}, '6': {},
+	'7': {}, '8': {}, '9': {},
+	'_': {}, '*': {}, '-': {}, '+': {},
+	'@': {}, '$': {}, '#': {}, '=': {},
+	'>': {}, '<': {},
+}
+
+var delimiterSet = map[byte]struct{}{
+	' ': {}, '\t': {}, '\n': {},
+	',': {}, '.': {}, ';': {},
+	'!': {}, '?': {}, '(': {},
+	')': {}, '\'': {}, '"': {}, '`': {},
+}
+
 // Helper Function to check if they are word characters
 func isWordChar(ch byte) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '*' || ch == '-' || ch == '+' ||
-		ch == '@' || ch == '$' || ch == '#' || ch == '=' || ch == '>' || ch == '<' 
+	_, exists := wordCharSet[ch]
+	return exists
 }
 
 func isDelimeter(ch byte) bool {
-	return (ch == ' ' || ch == '\t' || ch == '\n' || ch == ',' || ch == '.' || ch == ';' || ch == '!' || ch == '?' || ch == '(' ||
-		ch == ')' || ch == '\'' || ch == '"' || ch == '`')
+	_, exists := delimiterSet[ch]
+	return exists
 }
 
 // Function for moving forward by a word
