@@ -340,20 +340,20 @@ func (m *EditorPaneModel) View() string {
 	var output strings.Builder
 	cursor := "█"
 	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(rose))
+
 	for i, line := range m.buffer {
 		if i == m.cursorRow {
-			// Render if the pane is active
-			if m.isActive {
+			if m.isActive { // Render if the pane is active
 				var renderLine string
-				// Render for Normal Mode
 				if m.mode == NormalMode {
+					// Normal Mode: Insert cursor normally
 					if m.cursorCol < len(line) {
 						renderLine = line[:m.cursorCol] + cursorStyle.Render(cursor) + line[m.cursorCol+1:]
 					} else {
 						renderLine = line + cursorStyle.Render(cursor)
 					}
-					// Render for Insert Mode
 				} else {
+					// Insert Mode: Highlight character under cursor
 					if m.cursorCol < len(line) {
 						charUnderCursor := string(line[m.cursorCol])
 						renderLine = line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:]
@@ -362,8 +362,7 @@ func (m *EditorPaneModel) View() string {
 					}
 				}
 				output.WriteString(renderLine)
-				// Show Text if inactive
-			} else {
+			} else { // Render if the pane is inactive
 				output.WriteString(line)
 			}
 		} else {
