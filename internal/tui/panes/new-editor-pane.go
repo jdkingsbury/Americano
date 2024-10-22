@@ -2,7 +2,6 @@ package panes
 
 import (
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,6 +11,7 @@ import (
 
 // TODO: Fix to ensure move forward and backward to always ends on a word
 // Add the functionality to ensure code works on multiline
+// Work on adding cursor blinking when in inset mode
 
 const (
 	NormalMode = iota
@@ -35,7 +35,6 @@ type EditorPaneModel struct {
 	mode         int
 	db           drivers.Database
 	keys         editorKeyMap
-	blinkOn      bool
 }
 
 type editorKeyMap struct {
@@ -109,14 +108,6 @@ func NewEditorPane(width, height int, db drivers.Database) *EditorPaneModel {
 	return pane
 }
 
-type blinkMsg struct{}
-
-func blinkCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*530, func(t time.Time) tea.Msg {
-		return blinkMsg{}
-	})
-}
-
 // Helper function for determining the min
 func min(a, b int) int {
 	if a < b {
@@ -176,7 +167,7 @@ func (m *EditorPaneModel) updateStyles() {
 }
 
 func (m *EditorPaneModel) Init() tea.Cmd {
-	return blinkCmd()
+	return nil
 }
 
 func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -186,14 +177,13 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.updateStyles()
 
-	case blinkMsg:
-		m.blinkOn = !m.blinkOn
-		if m.mode == InsertMode {
-			return m, blinkCmd()
-		}
+		// Insert Query into Editor Pane
+	case InsertQueryMsg:
+		m.buffer = strings.Split(msg.Query, "\n")
 		return m, nil
 
 	case tea.KeyMsg:
+
 		switch {
 		// Execute Query
 		case key.Matches(msg, m.keys.ExecuteQuery):
@@ -207,13 +197,11 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Switch to Normal Mode
 		case msg.String() == "i" && m.mode == NormalMode:
 			m.mode = InsertMode
-			m.blinkOn = true
-			return m, blinkCmd()
+			return m, nil
 
 			// Switch to Insert Mode
 		case msg.String() == "esc" && m.mode == InsertMode:
 			m.mode = NormalMode
-			m.blinkOn = false
 			return m, nil
 
 			// Normal Mode Commands
@@ -223,12 +211,10 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Move forward by a word
 			case msg.String() == "w":
 				m.cursorCol = m.moveCursorForwardByWord(m.buffer[m.cursorRow], m.cursorCol)
-				// m.cursorRow, m.cursorCol = m.moveCursorForwardByWord(m.cursorRow, m.cursorCol)
 
 			// Move backward by a word
 			case msg.String() == "b":
 				m.cursorCol = m.moveCursorBackwardByWord(m.buffer[m.cursorRow], m.cursorCol)
-				// m.cursorRow, m.cursorCol = m.moveCursorBackwardByWord(m.cursorRow, m.cursorCol)
 
 			// Up
 			case key.Matches(msg, m.keys.Up) || msg.String() == "k":
@@ -337,11 +323,6 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-
-		// Insert Query into Editor Pane
-	case InsertQueryMsg:
-		m.buffer = strings.Split(msg.Query, "\n")
-		return m, nil
 	}
 
 	return m, nil
@@ -357,37 +338,31 @@ func (m *EditorPaneModel) View() string {
 
 	// Render buffer lines and add the cursor at the correct position
 	var output strings.Builder
+	cursor := "█"
+	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(rose))
 	for i, line := range m.buffer {
 		if i == m.cursorRow {
 			// Render if the pane is active
 			if m.isActive {
-				cursor := "█"
-
+				var renderLine string
 				// Render for Normal Mode
 				if m.mode == NormalMode {
-					// Insert cursor into the line at the correct column
 					if m.cursorCol < len(line) {
-						output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor) + line[m.cursorCol+1:])
+						renderLine = line[:m.cursorCol] + cursorStyle.Render(cursor) + line[m.cursorCol+1:]
 					} else {
-						output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
+						renderLine = line + cursorStyle.Render(cursor)
+					}
+					// Render for Insert Mode
+				} else {
+					if m.cursorCol < len(line) {
+						charUnderCursor := string(line[m.cursorCol])
+						renderLine = line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:]
+					} else {
+						renderLine = line + cursorStyle.Render(cursor)
 					}
 				}
-
-				// Render for Insert Mode
-				if m.mode == InsertMode {
-					if m.blinkOn {
-						// Insert cursor into the line at the correct column
-						if m.cursorCol < len(line) {
-							charUnderCursor := string(line[m.cursorCol])
-							output.WriteString(line[:m.cursorCol] + lipgloss.NewStyle().Background(lipgloss.Color(rose)).Foreground(lipgloss.Color(overlay)).Render(charUnderCursor) + line[m.cursorCol+1:])
-						} else {
-							output.WriteString(line + lipgloss.NewStyle().Foreground(lipgloss.Color(rose)).Render(cursor))
-						}
-					} else {
-						output.WriteString(line)
-					}
-				}
-				// Render if the pane is inactive
+				output.WriteString(renderLine)
+				// Show Text if inactive
 			} else {
 				output.WriteString(line)
 			}
