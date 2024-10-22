@@ -118,18 +118,28 @@ func min(a, b int) int {
 
 // Helper Function to check if they are word characters
 func isWordChar(ch byte) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_'
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '*' || ch == '-' || ch == '+' ||
+		ch == '@' || ch == '$' || ch == '#' || ch == '=' || ch == '>' || ch == '<' 
+}
+
+func isDelimeter(ch byte) bool {
+	return (ch == ' ' || ch == '\t' || ch == '\n' || ch == ',' || ch == '.' || ch == ';' || ch == '!' || ch == '?' || ch == '(' ||
+		ch == ')' || ch == '\'' || ch == '"' || ch == '`')
 }
 
 // Function for moving forward by a word
 func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 	// Skip over non word characters
-	for col < len(line) && !isWordChar(line[col]) {
+	for col < len(line) && isDelimeter(line[col]) {
 		col++
 	}
 
 	// Skip over word characters
 	for col < len(line) && isWordChar(line[col]) {
+		col++
+	}
+
+	for col < len(line) && isDelimeter(line[col]) {
 		col++
 	}
 
@@ -139,12 +149,16 @@ func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 // Function for moving backward by a word
 func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
 	// Skip over non word characters
-	for col > 0 && !isWordChar(line[col-1]) {
+	for col > 0 && isDelimeter(line[col-1]) {
 		col--
 	}
 
 	// Skip over word characters
 	for col > 0 && isWordChar(line[col-1]) {
+		col--
+	}
+
+	for col > 0 && isDelimeter(line[col-1]) {
 		col--
 	}
 
