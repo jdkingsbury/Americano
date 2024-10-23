@@ -9,7 +9,7 @@ import (
 	"github.com/jdkingsbury/americano/internal/drivers"
 )
 
-// TODO: Fix to ensure move forward and backward to always ends on a word
+// TODO:
 // Add the functionality to ensure code works on multiline
 // Work on adding cursor blinking when in inset mode
 // Work on move forward and backward a word to ensure that we always end up on the first character of a word
@@ -41,10 +41,10 @@ var sqlKeywords = map[string]struct{}{
 var tokenStyles = map[TokenType]lipgloss.Style{
 	TokenKeyword:    lipgloss.NewStyle().Foreground(lipgloss.Color(pine)),
 	TokenIdentifier: lipgloss.NewStyle().Foreground(lipgloss.Color(text)),
-	TokenNumber:     lipgloss.NewStyle().Foreground(lipgloss.Color("141")),
+	TokenNumber:     lipgloss.NewStyle().Foreground(lipgloss.Color(gold)),
 	TokenSymbol:     lipgloss.NewStyle().Foreground(lipgloss.Color(subtle)),
-	TokenString:     lipgloss.NewStyle().Foreground(lipgloss.Color("214")),
-	TokenComment:    lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Italic(true),
+	TokenString:     lipgloss.NewStyle().Foreground(lipgloss.Color(gold)),
+	TokenComment:    lipgloss.NewStyle().Foreground(lipgloss.Color(subtle)).Italic(true),
 }
 
 func isKeyword(word string) bool {
@@ -504,7 +504,7 @@ func (m *EditorPaneModel) View() string {
 		charCount := 0
 
 		for _, token := range tokens {
-      // Keep track of raw token value so that we can stylize the text later using tokenStyle
+			// Keep track of raw token value so that we can stylize the text later using tokenStyle
 			rawTokenValue := token.Value
 			tokenLength := len(rawTokenValue)
 			tokenStyle := tokenStyles[token.Type]
