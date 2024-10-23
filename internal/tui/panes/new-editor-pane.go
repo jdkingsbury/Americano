@@ -66,11 +66,12 @@ func isSymbol(word string) bool {
 func tokenize(line string) []token {
 	var tokens []token
 	var currentToken strings.Builder
+	var inString bool
 	tokenType := TokenIdentifier // default token type
 
 	for _, char := range line {
 		switch {
-		case char == ' ':
+		case char == ' ' && !inString:
 			// Complete the current token before processing the space
 			if currentToken.Len() > 0 {
 				word := currentToken.String()
@@ -87,7 +88,7 @@ func tokenize(line string) []token {
 			// Add space as a symbol token
 			tokens = append(tokens, token{Type: TokenSymbol, Value: " "})
 
-		case isSymbol(string(char)):
+		case isSymbol(string(char)) && !inString:
 			// Close the current token before processing a symbol
 			if currentToken.Len() > 0 {
 				word := currentToken.String()
@@ -102,6 +103,33 @@ func tokenize(line string) []token {
 				currentToken.Reset()
 			}
 			tokens = append(tokens, token{Type: TokenSymbol, Value: string(char)}) // Symbol as its own token
+
+		case char == '"' || char == '\'':
+			// Handle string literals
+			if inString {
+				// Close token string
+				currentToken.WriteRune(char)
+				tokens = append(tokens, token{Type: TokenString, Value: currentToken.String()})
+				currentToken.Reset()
+				inString = false
+			} else {
+				// Start a new token string
+				if currentToken.Len() > 0 {
+					// Flush any non-string tokens before starting a new string
+					word := currentToken.String()
+					if isKeyword(word) {
+						tokenType = TokenKeyword
+					} else if isNumber(word) {
+						tokenType = TokenNumber
+					} else {
+						tokenType = TokenIdentifier
+					}
+					tokens = append(tokens, token{Type: tokenType, Value: word})
+					currentToken.Reset()
+				}
+				inString = true
+				currentToken.WriteRune(char)
+			}
 
 		default:
 			currentToken.WriteRune(char) // Continue building the word
