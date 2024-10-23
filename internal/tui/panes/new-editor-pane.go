@@ -2,6 +2,7 @@ package panes
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -235,53 +236,27 @@ func min(a, b int) int {
 	return b
 }
 
-var wordCharSet = map[byte]struct{}{
-	'a': {}, 'b': {}, 'c': {}, 'd': {}, 'e': {}, 'f': {}, 'g': {},
-	'h': {}, 'i': {}, 'j': {}, 'k': {}, 'l': {}, 'm': {}, 'n': {},
-	'o': {}, 'p': {}, 'q': {}, 'r': {}, 's': {}, 't': {}, 'u': {},
-	'v': {}, 'w': {}, 'x': {}, 'y': {}, 'z': {},
-	'A': {}, 'B': {}, 'C': {}, 'D': {}, 'E': {}, 'F': {}, 'G': {},
-	'H': {}, 'I': {}, 'J': {}, 'K': {}, 'L': {}, 'M': {}, 'N': {},
-	'O': {}, 'P': {}, 'Q': {}, 'R': {}, 'S': {}, 'T': {}, 'U': {},
-	'V': {}, 'W': {}, 'X': {}, 'Y': {}, 'Z': {},
-	'0': {}, '1': {}, '2': {}, '3': {}, '4': {}, '5': {}, '6': {},
-	'7': {}, '8': {}, '9': {},
-	'_': {}, '*': {}, '-': {}, '+': {},
-	'@': {}, '$': {}, '#': {}, '=': {},
-	'>': {}, '<': {},
+func isWordChar(ch rune) bool {
+	return unicode.IsLetter(ch) || unicode.IsNumber(ch) || unicode.IsPunct(ch) || ch == '_' || ch == '-' || ch == '*' || ch == '+' || ch == '=' || ch == '>' || ch == '<'
 }
 
-var delimiterSet = map[byte]struct{}{
-	' ': {}, '\t': {}, '\n': {},
-	',': {}, '.': {}, ';': {},
-	'!': {}, '?': {}, '(': {},
-	')': {}, '\'': {}, '"': {}, '`': {},
-}
-
-// Helper Function to check if they are word characters
-func isWordChar(ch byte) bool {
-	_, exists := wordCharSet[ch]
-	return exists
-}
-
-func isDelimeter(ch byte) bool {
-	_, exists := delimiterSet[ch]
-	return exists
+func isDelimeter(ch rune) bool {
+	return unicode.IsSpace(ch) || unicode.IsPunct(ch) && ch != '_' && ch != '-' && ch != '*' && ch != '+'
 }
 
 // Function for moving forward by a word
 func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 	// Skip over non word characters
-	for col < len(line) && isDelimeter(line[col]) {
+	for col < len(line) && isDelimeter(rune(line[col])) {
 		col++
 	}
 
 	// Skip over word characters
-	for col < len(line) && isWordChar(line[col]) {
+	for col < len(line) && isWordChar(rune(line[col])) {
 		col++
 	}
 
-	for col < len(line) && isDelimeter(line[col]) {
+	for col < len(line) && isDelimeter(rune(line[col])) {
 		col++
 	}
 
@@ -291,16 +266,16 @@ func (m *EditorPaneModel) moveCursorForwardByWord(line string, col int) int {
 // Function for moving backward by a word
 func (m *EditorPaneModel) moveCursorBackwardByWord(line string, col int) int {
 	// Skip over non word characters
-	for col > 0 && isDelimeter(line[col-1]) {
+	for col > 0 && isDelimeter(rune(line[col-1])) {
 		col--
 	}
 
 	// Skip over word characters
-	for col > 0 && isWordChar(line[col-1]) {
+	for col > 0 && isWordChar(rune(line[col-1])) {
 		col--
 	}
 
-	for col > 0 && isDelimeter(line[col]) {
+	for col > 0 && isDelimeter(rune(line[col])) {
 		col--
 	}
 
