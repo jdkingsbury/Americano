@@ -459,6 +459,76 @@ func (m *EditorPaneModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// Function for rendering the line
+func (m *EditorPaneModel) renderLine(tokens []token) string {
+	var renderedLine strings.Builder
+
+	for _, token := range tokens {
+		rawTokenValue := token.Value
+		tokenStyle := tokenStyles[token.Type]
+
+		renderedLine.WriteString(tokenStyle.Render(rawTokenValue))
+	}
+
+	return renderedLine.String()
+}
+
+// Function for rendering the cursor placement
+func (m *EditorPaneModel) renderCursor(tokens []token, row int) string {
+	var renderedLine strings.Builder
+	cursor := "█"
+	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(rose))
+
+	// Calculate the total character count across tokens to track cursor placement
+	charCount := 0
+
+	for _, token := range tokens {
+		rawTokenValue := token.Value
+		tokenLength := len(rawTokenValue)
+		tokenStyle := tokenStyles[token.Type]
+
+		// Check if the cursor is in the token and render it in the correct spot
+		if row == m.cursorRow && m.cursorCol >= charCount && m.cursorCol < charCount+tokenLength {
+			cursorPos := m.cursorCol - charCount
+
+			if m.mode == NormalMode {
+				// Normal Mode: Insert block cursor at the appropriate position
+				renderedLine.WriteString(tokenStyle.Render(rawTokenValue[:cursorPos]))
+				renderedLine.WriteString(cursorStyle.Render(cursor))
+				if cursorPos+1 < tokenLength {
+					renderedLine.WriteString(tokenStyle.Render(rawTokenValue[cursorPos+1:]))
+				}
+			} else if m.mode == InsertMode {
+				// Insert Mode: Highlight the character under the cursor
+				renderedLine.WriteString(tokenStyle.Render(rawTokenValue[:cursorPos]))
+
+				charUnderCursor := string(rawTokenValue[cursorPos])
+				highlightedCharStyle := lipgloss.NewStyle().
+					Background(lipgloss.Color(rose)).
+					Foreground(lipgloss.Color(overlay))
+
+				renderedLine.WriteString(highlightedCharStyle.Render(charUnderCursor))
+
+				if cursorPos+1 < tokenLength {
+					renderedLine.WriteString(tokenStyle.Render(rawTokenValue[cursorPos+1:]))
+				}
+			}
+		} else {
+			// Pane is inactive or the cursor is not on this token: render token normally
+			renderedLine.WriteString(tokenStyle.Render(rawTokenValue))
+		}
+
+		charCount += tokenLength
+	}
+
+	// Case for when the cursor is beyond the last token in the line
+	if row == m.cursorRow && m.cursorCol >= charCount {
+		renderedLine.WriteString(cursorStyle.Render(cursor))
+	}
+
+	return renderedLine.String()
+}
+
 func (m *EditorPaneModel) View() string {
 	var paneStyle lipgloss.Style
 	if m.isActive {
@@ -467,65 +537,21 @@ func (m *EditorPaneModel) View() string {
 		paneStyle = m.styles
 	}
 
-	// Render buffer lines and add the cursor at the correct position if active
 	var output strings.Builder
-	cursor := "█"
-	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(rose))
 
 	for i, line := range m.buffer {
-		// Tokenize the line for syntax highlighting
+		// Tokenize line for syntax highlighting
 		tokens := tokenize(line)
-		var renderedLine strings.Builder
-		charCount := 0
 
-		for _, token := range tokens {
-			// Keep track of raw token value so that we can stylize the text later using tokenStyle
-			rawTokenValue := token.Value
-			tokenLength := len(rawTokenValue)
-			tokenStyle := tokenStyles[token.Type]
-
-			// If the pane is active, handle cursor display logic
-			if m.isActive && i == m.cursorRow && m.cursorCol >= charCount && m.cursorCol < charCount+tokenLength {
-				cursorPos := m.cursorCol - charCount
-
-				if m.mode == NormalMode {
-					// Normal Mode: Insert block cursor at the appropriate position
-					renderedLine.WriteString(tokenStyle.Render(rawTokenValue[:cursorPos]))
-					renderedLine.WriteString(cursorStyle.Render(cursor))
-					if cursorPos+1 < tokenLength {
-						renderedLine.WriteString(tokenStyle.Render(rawTokenValue[cursorPos+1:]))
-					}
-				} else if m.mode == InsertMode {
-					// Insert Mode: Highlight the character under the cursor
-					renderedLine.WriteString(tokenStyle.Render(rawTokenValue[:cursorPos]))
-
-					charUnderCursor := string(rawTokenValue[cursorPos])
-					highlightedCharStyle := lipgloss.NewStyle().
-						Background(lipgloss.Color(rose)).
-						Foreground(tokenStyle.GetForeground())
-
-					renderedLine.WriteString(highlightedCharStyle.Render(charUnderCursor))
-
-					if cursorPos+1 < tokenLength {
-						renderedLine.WriteString(tokenStyle.Render(rawTokenValue[cursorPos+1:]))
-					}
-				}
-			} else {
-				// Pane is inactive or the cursor is not on this token: render token normally
-				renderedLine.WriteString(tokenStyle.Render(rawTokenValue))
-			}
-
-			charCount += tokenLength
+		if m.isActive && i == m.cursorRow {
+			// Render the line with cursor
+			output.WriteString(m.renderCursor(tokens, i))
+		} else {
+			// Render the line normally
+			output.WriteString(m.renderLine(tokens))
 		}
 
-		// Handle case when the cursor is beyond the last token in the line (only when active)
-		if m.isActive && i == m.cursorRow && m.cursorCol >= charCount {
-			renderedLine.WriteString(cursorStyle.Render(cursor))
-		}
-
-		output.WriteString(renderedLine.String())
-
-		// Add a newline unless it's the last line
+		// Add new line unless it's the last line
 		if i < len(m.buffer)-1 {
 			output.WriteString("\n")
 		}
